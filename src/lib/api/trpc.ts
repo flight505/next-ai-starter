@@ -10,8 +10,6 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { getServerAuthSession, UserRole } from "../auth";
-
 /**
  * 1. CONTEXT
  *
@@ -25,10 +23,7 @@ import { getServerAuthSession, UserRole } from "../auth";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await getServerAuthSession();
-
   return {
-    session,
     ...opts,
   };
 };
@@ -86,46 +81,8 @@ export const publicProcedure = t.procedure;
 
 /**
  * Protected (authenticated) procedure
- *
- * If you want a query or mutation to ONLY be accessible to logged in users, use this. It verifies
- * the session is valid and guarantees `ctx.session.user` is not null.
- *
- * @see https://trpc.io/docs/procedures
+ * 
+ * Note: This is a placeholder since we removed authentication.
+ * In this implementation, it's identical to publicProcedure.
  */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.session || !ctx.session.user) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "Session or user information is missing",
-    });
-  }
-
-  return next({
-    ctx: {
-      session: { ...ctx.session, user: ctx.session.user },
-    },
-  });
-});
-
-// /**
-//  * Protected (authenticated) procedure
-//  *
-//  * If you want a query or mutation to ONLY be accessible to logged in admins, use this. It verifies
-//  * the session is valid and guarantees `ctx.session.user` has admin privileges.
-//  *
-//  * @see https://trpc.io/docs/procedures
-//  */
-// export const adminProcedure = t.procedure.use(({ ctx, next }) => {
-//   if (!ctx.session?.user?.isAdmin) {
-//     throw new TRPCError({
-//       code: "UNAUTHORIZED",
-//       message: "Admin privileges required",
-//     });
-//   }
-
-//   return next({
-//     ctx: {
-//       session: { ...ctx.session, user: ctx.session.user },
-//     },
-//   });
-// });
+export const protectedProcedure = t.procedure;
