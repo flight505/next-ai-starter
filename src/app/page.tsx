@@ -2,8 +2,8 @@ import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="container mx-auto px-4 py-12">
-      <div className="max-w-2xl mx-auto font-mono">
+    <div className="container py-12">
+      <div className="max-w-2xl font-mono">
         <h1 className="text-4xl font-bold text-green-400 mb-8">
           Welcome to My ASCII Portfolio
         </h1>
@@ -22,27 +22,19 @@ export default function Home() {
         </section>
         
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-4 text-green-300">Latest Blog Posts</h2>
-          <p className="mb-4">
-            Coming soon - blog posts powered by Notion.
-          </p>
-          <p>
-            <Link href="/blog" className="text-green-400 hover:text-green-300 underline">
-              Check out my blog →
-            </Link>
-          </p>
-        </section>
-        
-        <section>
-          <h2 className="text-2xl font-bold mb-4 text-green-300">Get in Touch</h2>
-          <p className="mb-4">
-            Have a project in mind or just want to chat? I'd love to hear from you.
-          </p>
-          <p>
-            <Link href="/contact" className="text-green-400 hover:text-green-300 underline">
-              Contact me →
-            </Link>
-          </p>
+          <h2 className="text-2xl font-bold mb-4 text-green-300">Portfolio</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="border border-green-800 p-4">
+              <h3 className="text-xl font-bold mb-2">ASCII Animations</h3>
+              <p className="mb-2">Creative coding experiments with text-based graphics.</p>
+              <p className="text-green-600">[ JavaScript, Canvas, React ]</p>
+            </div>
+            <div className="border border-green-800 p-4">
+              <h3 className="text-xl font-bold mb-2">Interactive Art</h3>
+              <p className="mb-2">User-responsive digital art installations.</p>
+              <p className="text-green-600">[ TypeScript, Three.js, WebGL ]</p>
+            </div>
+          </div>
         </section>
       </div>
     </div>

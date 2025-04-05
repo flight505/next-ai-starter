@@ -4,8 +4,8 @@ export default function AboutPage() {
   return (
     <>
       <AsciiBackground mode="sand" userWord="SAND" />
-      <div className="container mx-auto px-4 py-12">
-        <div className="max-w-2xl mx-auto font-mono">
+      <div className="container py-12">
+        <div className="max-w-2xl font-mono">
           <h1 className="text-4xl font-bold text-green-400 mb-8">
             About Me
           </h1>

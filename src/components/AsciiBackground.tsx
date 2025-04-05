@@ -2,10 +2,11 @@
 
 import { useRef, useEffect, useState } from "react";
 import { SandGrid, createEmptySandGrid, updateSand, addLetterToGrid } from "@/lib/animations/sandGame";
+import { GOLGrid, createGOLGrid, updateGOL } from "@/lib/animations/gameOfLife";
 
 type AsciiBackgroundProps = {
   userWord?: string;
-  mode?: "default" | "sand";
+  mode?: "default" | "sand" | "gol";
 };
 
 const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) => {
@@ -17,6 +18,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [transitionProgress, setTransitionProgress] = useState(0);
   const [sandGrid, setSandGrid] = useState<SandGrid | null>(null);
+  const [golGrid, setGolGrid] = useState<GOLGrid | null>(null);
   const [currentSandLetterIndex, setCurrentSandLetterIndex] = useState(0);
   const [charDimensions, setCharDimensions] = useState({ width: 9, height: 16 });
 
@@ -70,6 +72,11 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
       if (mode === "sand") {
         setSandGrid(createEmptySandGrid(cols, rows));
       }
+      
+      // Initialize Game of Life grid if in gol mode
+      if (mode === "gol") {
+        setGolGrid(createGOLGrid(cols, rows, 0.3));
+      }
     };
 
     // Call once initially
@@ -103,6 +110,11 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
           setSandGrid(updateSand(sandGrid));
         }
         
+        // Update Game of Life grid if in gol mode
+        if (mode === "gol" && golGrid && frameCount % 10 === 0) {
+          setGolGrid(updateGOL(golGrid));
+        }
+        
         // If transitioning, update progress
         if (mode === "default" && isTransitioning) {
           setTransitionProgress(prev => {
@@ -128,6 +140,14 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
           for (let y = 0; y < sandGrid.length; y++) {
             for (let x = 0; x < sandGrid[0].length; x++) {
               fullFrameString += sandGrid[y][x];
+            }
+            fullFrameString += "\n";
+          }
+        } else if (mode === "gol" && golGrid) {
+          // Render the Game of Life grid
+          for (let y = 0; y < golGrid.length; y++) {
+            for (let x = 0; x < golGrid[0].length; x++) {
+              fullFrameString += golGrid[y][x] ? "#" : " ";
             }
             fullFrameString += "\n";
           }
@@ -197,7 +217,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", handleResize);
     };
-  }, [currentWordIndex, defaultWords, frameCount, isTransitioning, mode, sandGrid, transitionProgress, userWord]);
+  }, [currentWordIndex, defaultWords, frameCount, isTransitioning, mode, sandGrid, golGrid, transitionProgress, userWord]);
 
   return (
     <div 

@@ -17,6 +17,9 @@ body {
 
 body {
   @apply flex w-full flex-col bg-gradient-to-br from-blue-50 to-red-50 text-slate-900 dark:from-slate-900 dark:to-slate-800 dark:text-slate-100;
+  font-family: monospace;
+  background-color: black;
+  color: #0f0;
 }
 
 #__next {
@@ -160,4 +163,35 @@ body {
 .animate-wave {
   animation: wave 1.5s infinite;
   transform-origin: 70% 70%;
+}
+
+/* Overlay styling */
+.overlay {
+  position: relative;
+  z-index: 10;
+  padding: 2ch;
+}
+
+.overlay a {
+  color: #0f0;
+  text-decoration: none;
+  display: inline-block;
+  padding: 0 0.5ch;
+}
+
+.overlay a:hover {
+  color: #000;
+  background-color: #0f0;
+  transition: background-color 0.1s, color 0.1s;
+}
+
+/* Responsive font sizes */
+@media (max-width: 480px) {
+  html {
+    font-size: 0.9rem;
+  }
+  
+  .overlay {
+    padding: 1ch;
+  }
 }
