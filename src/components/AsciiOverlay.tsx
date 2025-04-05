@@ -40,10 +40,10 @@ export default function AsciiOverlay({ children }: AsciiOverlayProps) {
     'Life is life',
     'I liked my dinner',
     'Gilgamesh is my father',
-    'I don't want to write you',
-    'It's time for a new haircut',
+    "I don't want to write you",
+    "It's time for a new haircut",
     'Sex or fox are better than fax',
-    'It's common to say it's common',
+    "It's common to say it's common",
     'Aaaah is not the same as ooooh',
     // ---- colors
     'Blue is my favourite color',
