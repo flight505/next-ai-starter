@@ -9,7 +9,60 @@ type AsciiOverlayProps = {
 
 export default function AsciiOverlay({ children }: AsciiOverlayProps) {
   const [emailSubject, setEmailSubject] = useState('Hello');
-  const subjects = ['Hi', 'Question', 'Project Inquiry', 'Just saying hello', 'Collaboration', 'Job Opportunity'];
+  const subjects = [
+    // ---- cheers
+    'Hi',
+    'Yo',
+    'Ciao',
+    'Viva',
+    'Salut',
+    'Hello',
+    'Grüezi',
+    'Cheers',
+    'Prosit',
+    'Oooooh',
+    'Olà olà',
+    'Bonjour',
+    'Namaste',
+    'Guten Tag',
+    'Shaba-daba',
+    'Go to hell',
+    'Buona notte',
+    'Buenas dias',
+    'Hasta la victoria',
+    // ---- love
+    'I love you',
+    'I hate you',
+    'I love my cat',
+    'I love my dog',
+    'I want to be your slave',
+    // ---- thats
+    'Life is life',
+    'I liked my dinner',
+    'Gilgamesh is my father',
+    'I don't want to write you',
+    'It's time for a new haircut',
+    'Sex or fox are better than fax',
+    'It's common to say it's common',
+    'Aaaah is not the same as ooooh',
+    // ---- colors
+    'Blue is my favourite color',
+    'Pink is my favourite color',
+    'Gray is my favourite color',
+    'Ocra is my favourite color',
+    // ---- numbers
+    'Two has three letters',
+    'Three has five letters',
+    'Five has four letters',
+    'Four has four letters',
+    'π is close to, but not exactly 3.1415',
+    // ---- animals
+    'Slick worms eat silk',
+    'Sheep sings while ship sinks',
+    'Gold is fish and golf is dish',
+    'I saw a cat sleeping in a box',
+    'The fly flies and the flies fly'
+  ];
   
   // Function to shuffle an array
   const shuffle = (array: string[]) => {
