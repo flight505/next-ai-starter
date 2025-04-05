@@ -30,10 +30,11 @@ export default function RootLayout({
             <TRPCReactProvider>
               <AsciiBackground />
               <div className="flex flex-col min-h-screen relative z-10">
-                <AsciiOverlay />
-                <main className="flex-grow relative z-10 pl-4 md:pl-64">
-                  {children}
-                </main>
+                <AsciiOverlay>
+                  <main className="relative z-10 mt-8">
+                    {children}
+                  </main>
+                </AsciiOverlay>
               </div>
               <ThemeAwareToast />
             </TRPCReactProvider>

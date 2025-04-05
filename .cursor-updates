@@ -38,3 +38,4 @@
 - Refactored dashboard page to leverage existing KanbanBoard component and move logic to the backend with proper tRPC endpoints.
 - Fixed invalid hook call error in dashboard page by properly using React hooks pattern instead of imperative API calls.
 - Implemented Conway's Game of Life animation and created a Contact page featuring the Game of Life as an interactive background with a styled contact form.
+- Created AsciiOverlay component with navigation links, implemented hover-interactive styling, and integrated it with the layout structure to improve site navigation and user experience.

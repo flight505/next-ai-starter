@@ -165,11 +165,17 @@ body {
   transform-origin: 70% 70%;
 }
 
-/* Overlay styling */
+/* Overlay styles */
 .overlay {
   position: relative;
   z-index: 10;
   padding: 2ch;
+  color: #0f0;
+  font-family: monospace;
+  background-color: rgba(0, 0, 0, 0.7);
+  border: 1px solid #0f0;
+  max-width: 800px;
+  margin: 2rem auto;
 }
 
 .overlay a {
@@ -185,7 +191,7 @@ body {
   transition: background-color 0.1s, color 0.1s;
 }
 
-/* Responsive font sizes */
+/* Media queries for responsive font sizes */
 @media (max-width: 480px) {
   html {
     font-size: 0.9rem;
