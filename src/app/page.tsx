@@ -1,67 +1,49 @@
-"use client";
+import Link from "next/link";
 
-import React from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/Button";
-import { ArrowRightIcon, FolderOpenIcon } from "lucide-react";
-
-export default function HomePage() {
-  const router = useRouter();
-
-  // Handle create new project click
-  const handleCreateNew = () => {
-    router.push("/new-project");
-  };
-
-  // Handle import project click - for now just route to placeholder
-  const handleImportProject = () => {
-    router.push("/dashboard");
-  };
-
+export default function Home() {
   return (
-    <div className="container mx-auto px-4 py-6 max-w-5xl">
-      <img src="/logo.png" alt="Forq Logo" className="w-32 h-32 mx-auto" />
-      <p className="text-center text-stone-600 dark:text-amber-200 mb-12 max-w-2xl mx-auto">
-        Create AI-powered applications from a simple prompt. Generate
-        requirements, design specifications, and task lists all in one place.
-      </p>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-        {/* New Project Card */}
-        <div className="bg-amber-50 dark:bg-stone-800 p-8 rounded-lg shadow-sm border border-amber-200 dark:border-stone-700 hover:shadow-md transition-shadow flex flex-col">
-          <h2 className="text-2xl font-bold text-stone-800 dark:text-amber-100 mb-4">
-            Start New Project
-          </h2>
-          <p className="text-stone-600 dark:text-amber-200 mb-6 flex-grow">
-            Create a new AI-assisted app from a prompt. Generate requirements,
-            specifications, and a detailed task list.
+    <div className="container mx-auto px-4 py-12">
+      <div className="max-w-2xl mx-auto font-mono">
+        <h1 className="text-4xl font-bold text-green-400 mb-8">
+          Welcome to My ASCII Portfolio
+        </h1>
+        
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold mb-4 text-green-300">About Me</h2>
+          <p className="mb-4">
+            I'm a developer who loves ASCII art and retro aesthetics.
+            This site showcases my work and experiments with ASCII animations.
           </p>
-          <Button
-            onClick={handleCreateNew}
-            className="flex items-center justify-center"
-          >
-            Create New
-            <ArrowRightIcon className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Import Project Card */}
-        <div className="bg-amber-50 dark:bg-stone-800 p-8 rounded-lg shadow-sm border border-amber-200 dark:border-stone-700 hover:shadow-md transition-shadow flex flex-col">
-          <h2 className="text-2xl font-bold text-stone-800 dark:text-amber-100 mb-4">
-            Open Existing Project
-          </h2>
-          <p className="text-stone-600 dark:text-amber-200 mb-6 flex-grow">
-            Open and manage an existing Forq workspace. Resume work on a
-            previously started project.
+          <p>
+            <Link href="/about" className="text-green-400 hover:text-green-300 underline">
+              Learn more about me →
+            </Link>
           </p>
-          <Button
-            onClick={handleImportProject}
-            className="flex items-center justify-center"
-          >
-            Open Project
-            <FolderOpenIcon className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
+        </section>
+        
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold mb-4 text-green-300">Latest Blog Posts</h2>
+          <p className="mb-4">
+            Coming soon - blog posts powered by Notion.
+          </p>
+          <p>
+            <Link href="/blog" className="text-green-400 hover:text-green-300 underline">
+              Check out my blog →
+            </Link>
+          </p>
+        </section>
+        
+        <section>
+          <h2 className="text-2xl font-bold mb-4 text-green-300">Get in Touch</h2>
+          <p className="mb-4">
+            Have a project in mind or just want to chat? I'd love to hear from you.
+          </p>
+          <p>
+            <Link href="/contact" className="text-green-400 hover:text-green-300 underline">
+              Contact me →
+            </Link>
+          </p>
+        </section>
       </div>
     </div>
   );
