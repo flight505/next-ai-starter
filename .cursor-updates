@@ -39,3 +39,4 @@
 - Fixed invalid hook call error in dashboard page by properly using React hooks pattern instead of imperative API calls.
 - Implemented Conway's Game of Life animation and created a Contact page featuring the Game of Life as an interactive background with a styled contact form.
 - Created AsciiOverlay component with navigation links, implemented hover-interactive styling, and integrated it with the layout structure to improve site navigation and user experience.
+- Created multiple pages (Home, About, Projects, Sand) with consistent ASCII styling, each featuring different animation modes (default, sand) and implemented responsive layouts with mobile-friendly design.
