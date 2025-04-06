@@ -24,6 +24,9 @@ export default function NavBar() {
           <li className="font-mono mx-3">
             <Link href="/contact" className="hover:text-accent-hover">CONTACT</Link>
           </li>
+          <li>
+            <Link href="/engine-demo" className="hover:text-accent-hover">Engine Demo</Link>
+          </li>
         </ul>
       </div>
     </nav>
