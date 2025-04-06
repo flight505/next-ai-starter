@@ -5,7 +5,7 @@ import Link from 'next/link';
 import AsciiBackground from '@/components/AsciiBackground';
 
 export default function BackgroundDemo() {
-  const [mode, setMode] = useState<'default' | 'sand' | 'gol'>('default');
+  const [mode, setMode] = useState<'default' | 'gol'>('default');
   const [customWord, setCustomWord] = useState('');
   const [activeWord, setActiveWord] = useState('');
   
@@ -45,12 +45,6 @@ export default function BackgroundDemo() {
               className={`px-2 py-1 border ${mode === 'default' ? 'border-accent bg-accent/30' : 'border-gray-600'}`}
             >
               Default
-            </button>
-            <button 
-              onClick={() => setMode('sand')}
-              className={`px-2 py-1 border ${mode === 'sand' ? 'border-accent bg-accent/30' : 'border-gray-600'}`}
-            >
-              Sand Game
             </button>
             <button 
               onClick={() => setMode('gol')}
@@ -96,9 +90,6 @@ export default function BackgroundDemo() {
           <p className="text-sm mb-2">Mode Instructions:</p>
           {mode === 'default' && (
             <p className="text-xs">Click anywhere to create a ripple effect.</p>
-          )}
-          {mode === 'sand' && (
-            <p className="text-xs">Click to drop letters. They will fall with gravity.</p>
           )}
           {mode === 'gol' && (
             <p className="text-xs">Watch Conway's Game of Life evolve with ASCII characters.</p>

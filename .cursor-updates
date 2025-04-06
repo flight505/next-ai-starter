@@ -18,3 +18,4 @@
 - Fixed AsciiEngine interactive elements by updating uiRenderer.ts with better hover detection and mouse position handling
 - Pruned unused dependencies and files including Storybook, tRPC, Inngest, Prisma, Resend, and AWS S3, reducing bundle size and simplifying the codebase
 - Implemented EPIC 10 Advanced ASCII Engine enhancements with canvas-based rendering, interactive effects, theme integration, and optimal performance; created a Background Demo page and refactored AsciiBackground component to use the new engine while maintaining existing functionality
+- Removed the Sand Game project and all related components, including the page, animation logic, and navigation references, to simplify the codebase and focus on the core ASCII animation experience

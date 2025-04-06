@@ -113,7 +113,6 @@ export default function AsciiOverlay({ children }: AsciiOverlayProps) {
             <li><Link href="/">[HOME]</Link></li>
             <li><Link href="/about">[ABOUT]</Link></li>
             <li><Link href="/projects">[PROJECTS]</Link></li>
-            <li><Link href="/sand">[SAND]</Link></li>
             <li><Link href="/contact">[CONTACT]</Link></li>
           </ul>
         </div>

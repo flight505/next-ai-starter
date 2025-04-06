@@ -8,7 +8,7 @@ import NavBar from '@/components/NavBar';
 export default function Home() {
   return (
     <div className="relative min-h-screen">
-      <AsciiBackground userWord="ASCII" />
+      <AsciiBackground />
       <NavBar />
       
       <main className="container mx-auto p-4 pt-20">
@@ -56,14 +56,6 @@ export default function Home() {
           <section>
             <h2 className="text-xl font-mono text-accent mb-4">INTERACTIVE DEMOS</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Link href="/sand">
-                <div className="border border-accent p-4 hover:bg-accent/20 transition-colors h-full">
-                  <h3 className="font-mono text-accent mb-2">SAND GAME</h3>
-                  <p className="font-mono text-sm">
-                    Click and interact with a physics-based ASCII sand simulation.
-                  </p>
-                </div>
-              </Link>
               <Link href="/contact">
                 <div className="border border-accent p-4 hover:bg-accent/20 transition-colors h-full">
                   <h3 className="font-mono text-accent mb-2">GAME OF LIFE</h3>

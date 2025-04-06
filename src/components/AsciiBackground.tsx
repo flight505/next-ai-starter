@@ -2,7 +2,6 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { SandGrid, createEmptySandGrid, updateSand, addLetterToGrid } from "@/lib/animations/sandGame";
 import { GOLGrid, createGOLGrid, updateGOL } from "@/lib/animations/gameOfLife";
 import { 
   initAsciiEngine, AsciiGrid, renderFrame, updateMousePosition, 
@@ -14,12 +13,13 @@ import {
 } from "@/lib/asciiEngine/generators";
 import { 
   centerWord, startWordTransition, 
-  updateWordTransition, WordTransition 
+  updateWordTransition, WordTransition,
+  wordLibrary
 } from "@/lib/asciiEngine/textRenderer";
 
 type AsciiBackgroundProps = {
   userWord?: string;
-  mode?: "default" | "sand" | "gol";
+  mode?: "default" | "gol";
 };
 
 const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) => {
@@ -32,14 +32,20 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
   const animationFrameRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number>(0);
 
-  // Legacy states for sand and GOL modes
-  const [sandGrid, setSandGrid] = useState<SandGrid | null>(null);
+  // Legacy states for GOL mode
   const [golGrid, setGolGrid] = useState<GOLGrid | null>(null);
-  const [currentSandLetterIndex, setCurrentSandLetterIndex] = useState(0);
   
   // Engine states
   const [currentTransition, setCurrentTransition] = useState<WordTransition | null>(null);
-  const defaultWords = ["HELLO", "WORLD", "ASCII"];
+  // Enhanced word list with more interesting phrases
+  const defaultWords = [
+    "HELLO WORLD",
+    "ASCII ART",
+    "CREATIVE CODE",
+    "TERMINAL AESTHETIC",
+    "DIGITAL POETRY",
+    "TEXT BECOMES ART"
+  ];
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const frameCountRef = useRef(0);
   const [backgroundEffects, setBackgroundEffects] = useState({
@@ -47,34 +53,11 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
     rippleActive: false,
   });
 
-  // Character dimensions - needed for sand/GOL modes
+  // Character dimensions - needed for GOL mode
   const [charDimensions, setCharDimensions] = useState({ width: 9, height: 16 });
 
-  // Handle click for sand game (legacy mode)
+  // Handle click for background effects
   const handleClick = (e: React.MouseEvent) => {
-    // Handle legacy sand game mode
-    if (mode === "sand" && sandGrid && containerRef.current) {
-      // Get click position relative to the container
-      const rect = containerRef.current.getBoundingClientRect();
-      const relativeX = e.clientX - rect.left;
-      const relativeY = e.clientY - rect.top;
-      
-      // Convert to grid coordinates
-      const gridX = Math.floor(relativeX / charDimensions.width);
-      const gridY = Math.floor(relativeY / charDimensions.height);
-      
-      // Get the letter to add
-      const activeWord = userWord || defaultWords[currentWordIndex];
-      const letter = activeWord[currentSandLetterIndex];
-      
-      // Update sand grid with new letter
-      const newGrid = addLetterToGrid(sandGrid, gridX, gridY, letter);
-      setSandGrid(newGrid);
-      
-      // Increment letter index
-      setCurrentSandLetterIndex((prevIndex) => (prevIndex + 1) % activeWord.length);
-    }
-    
     // For default mode, create a new ripple effect
     if (mode === "default" && gridRef.current && configRef.current) {
       const rect = containerRef.current?.getBoundingClientRect();
@@ -110,14 +93,12 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
     gridRef.current = grid;
     configRef.current = config;
     
-    // For legacy sand/GOL modes, also initialize those grids
-    if (mode === "sand" || mode === "gol") {
+    // For legacy GOL mode, also initialize that grid
+    if (mode === "gol") {
       const cols = Math.floor(containerRef.current.offsetWidth / config.cellWidth);
       const rows = Math.floor(containerRef.current.offsetHeight / config.cellHeight);
       
-      if (mode === "sand") {
-        setSandGrid(createEmptySandGrid(cols, rows));
-      } else if (mode === "gol") {
+      if (mode === "gol") {
         setGolGrid(createGOLGrid(cols, rows, 0.3));
       }
       
@@ -126,9 +107,11 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
     
     // Start with initial word
     if (mode === "default" && gridRef.current) {
-      const centerY = Math.floor(gridRef.current.length / 2);
+      // Place word in a more visible position
+      const centerY = Math.floor(gridRef.current.length / 3);
       const initialWord = userWord || defaultWords[currentWordIndex];
-      centerWord(grid, initialWord, centerY);
+      // Make the word more prominent using larger style
+      placeMultilineWord(grid, initialWord, centerY);
     }
     
     // Handle mouse movement
@@ -147,14 +130,12 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
       if (!containerRef.current || !canvasRef.current || !gridRef.current || !configRef.current) return;
       handleResize(containerRef.current, canvasRef.current, gridRef.current, configRef.current);
       
-      // Also resize legacy grids if needed
-      if (mode === "sand" || mode === "gol") {
+      // Also resize legacy GOL grid if needed
+      if (mode === "gol") {
         const cols = Math.floor(containerRef.current.offsetWidth / configRef.current.cellWidth);
         const rows = Math.floor(containerRef.current.offsetHeight / configRef.current.cellHeight);
         
-        if (mode === "sand") {
-          setSandGrid(createEmptySandGrid(cols, rows));
-        } else if (mode === "gol") {
+        if (mode === "gol") {
           setGolGrid(createGOLGrid(cols, rows, 0.3));
         }
       }
@@ -190,28 +171,30 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
       
       // Handle different modes
       if (mode === "default") {
-        // Generate background patterns
-        noiseGenerator(gridRef.current, { intensity: 0.2, speed: 0.5 });
+        // Generate background patterns with reduced intensity to make words more visible
+        noiseGenerator(gridRef.current, { intensity: 0.1, speed: 0.5 });
         waveGenerator(gridRef.current, { 
-          amplitude: 0.3, 
+          amplitude: 0.2, 
           frequency: 0.07, 
           speed: 0.3 
         });
         
         // Handle word display and transitions
         const activeWord = userWord || defaultWords[currentWordIndex];
-        const centerY = Math.floor(gridRef.current.length / 2);
+        // Position words at 1/3 down the screen instead of center for better visibility
+        const centerY = Math.floor(gridRef.current.length / 3);
         
         // Check if we should start a new transition
-        if (frameCountRef.current % 300 === 0 && !currentTransition && !userWord) {
+        if (frameCountRef.current % 240 === 0 && !currentTransition && !userWord) {
           const nextIndex = (currentWordIndex + 1) % defaultWords.length;
           const nextWord = defaultWords[nextIndex];
           
+          // Use a more visible transition effect
           const transition = startWordTransition(
             gridRef.current,
             activeWord,
             nextWord,
-            'dissolve',
+            'dissolve', // Could also try 'wipe-center' for variety
             Math.floor((gridRef.current[0].length - nextWord.length) / 2),
             centerY
           );
@@ -224,7 +207,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
           const isComplete = updateWordTransition(
             gridRef.current,
             currentTransition,
-            0.05 // Control transition speed
+            0.03 // Slower transition for better visibility
           );
           
           if (isComplete) {
@@ -233,14 +216,15 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
           }
         } else if (!userWord) {
           // If no transition active and not using userWord, display current word
-          centerWord(
+          // Use a function to make words more prominent
+          placeMultilineWord(
             gridRef.current, 
             activeWord, 
             centerY
           );
         } else {
           // If using userWord, always display it
-          centerWord(
+          placeMultilineWord(
             gridRef.current, 
             userWord, 
             centerY
@@ -281,24 +265,8 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
             intensity: 0.7
           });
         }
-      } 
-      // Legacy modes
-      else if (mode === "sand" && sandGrid) {
-        // Update sand simulation every few frames
-        if (frameCountRef.current % 5 === 0) {
-          setSandGrid(updateSand(sandGrid));
-        }
-        
-        // Draw sand grid to ASCII grid
-        for (let y = 0; y < sandGrid.length && y < gridRef.current.length; y++) {
-          for (let x = 0; x < sandGrid[0].length && x < gridRef.current[0].length; x++) {
-            if (sandGrid[y][x] !== ' ') {
-              gridRef.current[y][x].char = sandGrid[y][x];
-              gridRef.current[y][x].intensity = 1;
-            }
-          }
-        }
-      } 
+      }
+      // Legacy mode
       else if (mode === "gol" && golGrid) {
         // Update Game of Life every 10 frames
         if (frameCountRef.current % 10 === 0) {
@@ -361,5 +329,71 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
     </div>
   );
 };
+
+// Function to place a word in a large, multi-line format
+function placeMultilineWord(grid: AsciiGrid, word: string, centerY: number) {
+  // Only proceed if grid exists
+  if (!grid || grid.length === 0) return;
+  
+  const cols = grid[0].length;
+  
+  // Create an enlarged version of the word using ASCII art technique
+  const wordLines: string[] = createLargeText(word);
+  
+  // Calculate positioning to center the word
+  const lineLength = wordLines[0]?.length || 0;
+  const x = Math.floor((cols - lineLength) / 2);
+  
+  // Place each line of the enlarged word
+  for (let i = 0; i < wordLines.length; i++) {
+    const y = centerY + i - Math.floor(wordLines.length / 2);
+    
+    // Skip if out of bounds
+    if (y < 0 || y >= grid.length) continue;
+    
+    // Place this line of the word
+    for (let j = 0; j < wordLines[i].length; j++) {
+      const posX = x + j;
+      
+      // Skip if out of bounds
+      if (posX < 0 || posX >= cols) continue;
+      
+      // Only place non-space characters
+      const char = wordLines[i][j];
+      if (char !== ' ') {
+        grid[y][posX].char = char;
+        grid[y][posX].type = 'background';
+        grid[y][posX].intensity = 1.0; // Full intensity for visibility
+      }
+    }
+  }
+}
+
+// Function to create a large text representation of a word
+function createLargeText(word: string): string[] {
+  // Simple ASCII art large letters (3 lines high)
+  const result: string[] = ['', '', ''];
+  
+  // Convert to uppercase for consistency
+  word = word.toUpperCase();
+  
+  for (let i = 0; i < word.length; i++) {
+    const char = word[i];
+    
+    if (char === ' ') {
+      // Add space
+      result[0] += '  ';
+      result[1] += '  ';
+      result[2] += '  ';
+    } else {
+      // Add a visible character representation (simple but larger)
+      result[0] += char + ' ';
+      result[1] += char + ' ';
+      result[2] += char + ' ';
+    }
+  }
+  
+  return result;
+}
 
 export default AsciiBackground; 

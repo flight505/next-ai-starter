@@ -16,11 +16,6 @@ export default function NavBar() {
           <li className="font-mono mx-3">
             <Link href="/projects" className="hover:text-accent-hover">PROJECTS</Link>
           </li>
-          <li>
-            <Link href="/sand" className="hover:text-accent-hover transition-colors">
-              SAND
-            </Link>
-          </li>
           <li className="font-mono mx-3">
             <Link href="/contact" className="hover:text-accent-hover">CONTACT</Link>
           </li>
