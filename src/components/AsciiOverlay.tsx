@@ -1,8 +1,9 @@
 "use client";
 
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { ThemeToggle } from './theme/ThemeToggle';
+import { useTheme } from 'next-themes';
+import ThemeToggle from '@/components/theme/ThemeToggle';
 
 type AsciiOverlayProps = {
   children?: React.ReactNode;

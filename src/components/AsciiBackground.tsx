@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { SandGrid, createEmptySandGrid, updateSand, addLetterToGrid } from "@/lib/animations/sandGame";
 import { GOLGrid, createGOLGrid, updateGOL } from "@/lib/animations/gameOfLife";

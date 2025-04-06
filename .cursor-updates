@@ -47,3 +47,5 @@
 - Fixed AsciiBackground component's infinite update loop by using a local frame counter instead of setState in the animation loop
 - Updated Sand page with theme-aware styling to properly support light/dark mode
 - Fixed maximum update depth exceeded error in AsciiBackground by moving grid initialization to a separate useEffect hook to avoid state updates during resizing
+- Removed accidentally included webcam-to-ascii-art directory that was committed inadvertently
+- Added ESLint configuration with NextJS and recommended rules to improve code quality

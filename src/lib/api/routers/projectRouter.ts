@@ -4,6 +4,7 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../trpc";
+import os from "os";
 
 export const projectRouter = createTRPCRouter({
   // Create a new project
@@ -232,6 +233,65 @@ export const projectRouter = createTRPCRouter({
         return {
           success: false,
           error: error instanceof Error ? error.message : "Unknown error",
+        };
+      }
+    }),
+
+  executeGitClone: publicProcedure
+    .input(
+      z.object({
+        repoUrl: z.string(),
+        destinationPath: z.string().optional(),
+        projectName: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        // Sanitize project name for directory name
+        const sanitizedName = input.projectName
+          .toLowerCase()
+          .replace(/[^a-z0-9-_]/g, "-");
+
+        // Use the sanitized name for the directory
+        const projectDir = path.join(
+          os.homedir(),
+          "Projects",
+          sanitizedName
+        );
+
+        // Make sure the parent directory exists
+        await fs.mkdir(path.dirname(projectDir), { recursive: true });
+
+        // Check if the directory already exists
+        try {
+          await fs.access(projectDir);
+          // If we get here, directory exists
+          return {
+            success: false,
+            message: `Directory already exists: ${projectDir}`,
+            path: projectDir,
+          };
+        } catch {
+          // Directory doesn't exist, continue with clone
+        }
+
+        // Perform git clone
+        const { stdout, stderr } = await exec(
+          `git clone ${input.repoUrl} ${projectDir}`
+        );
+
+        return {
+          success: true,
+          message: `Repository cloned successfully to ${projectDir}`,
+          stdout,
+          stderr,
+          path: projectDir,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          message: `Failed to clone repository: ${(error as Error).message}`,
+          path: "",
         };
       }
     }),
