@@ -4,6 +4,18 @@ import React, { useRef, useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { SandGrid, createEmptySandGrid, updateSand, addLetterToGrid } from "@/lib/animations/sandGame";
 import { GOLGrid, createGOLGrid, updateGOL } from "@/lib/animations/gameOfLife";
+import { 
+  initAsciiEngine, AsciiGrid, renderFrame, updateMousePosition, 
+  handleResize, AsciiEngineConfig 
+} from "@/lib/asciiEngine/engine";
+import { 
+  noiseGenerator, waveGenerator, rippleGenerator, 
+  cursorHeatGenerator 
+} from "@/lib/asciiEngine/generators";
+import { 
+  centerWord, startWordTransition, 
+  updateWordTransition, WordTransition 
+} from "@/lib/asciiEngine/textRenderer";
 
 type AsciiBackgroundProps = {
   userWord?: string;
@@ -13,299 +25,339 @@ type AsciiBackgroundProps = {
 const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) => {
   const { resolvedTheme } = useTheme();
   const isDarkTheme = resolvedTheme === "dark";
-  const preRef = useRef<HTMLPreElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const defaultWords = ["HELLO", "WORLD", "ASCII"];
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [frameCount, setFrameCount] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [transitionProgress, setTransitionProgress] = useState(0);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gridRef = useRef<AsciiGrid | null>(null);
+  const configRef = useRef<AsciiEngineConfig | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const lastTimestampRef = useRef<number>(0);
+
+  // Legacy states for sand and GOL modes
   const [sandGrid, setSandGrid] = useState<SandGrid | null>(null);
   const [golGrid, setGolGrid] = useState<GOLGrid | null>(null);
   const [currentSandLetterIndex, setCurrentSandLetterIndex] = useState(0);
+  
+  // Engine states
+  const [currentTransition, setCurrentTransition] = useState<WordTransition | null>(null);
+  const defaultWords = ["HELLO", "WORLD", "ASCII"];
+  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const frameCountRef = useRef(0);
+  const [backgroundEffects, setBackgroundEffects] = useState({
+    rippleRadius: 0,
+    rippleActive: false,
+  });
+
+  // Character dimensions - needed for sand/GOL modes
   const [charDimensions, setCharDimensions] = useState({ width: 9, height: 16 });
-  const dimensionsInitialized = useRef(false);
-  const isInitialMount = useRef(true);
 
-  // Function to get theme-specific colors
-  const getThemeColors = () => {
-    return {
-      background: isDarkTheme ? '#000' : '#fff',
-      foreground: isDarkTheme ? '#0f0' : '#333',
-      accent: isDarkTheme ? '#00ff00' : '#006600',
-    };
-  };
-
-  // Handle click for sand game
+  // Handle click for sand game (legacy mode)
   const handleClick = (e: React.MouseEvent) => {
-    if (mode !== "sand" || !sandGrid || !preRef.current) return;
+    // Handle legacy sand game mode
+    if (mode === "sand" && sandGrid && containerRef.current) {
+      // Get click position relative to the container
+      const rect = containerRef.current.getBoundingClientRect();
+      const relativeX = e.clientX - rect.left;
+      const relativeY = e.clientY - rect.top;
+      
+      // Convert to grid coordinates
+      const gridX = Math.floor(relativeX / charDimensions.width);
+      const gridY = Math.floor(relativeY / charDimensions.height);
+      
+      // Get the letter to add
+      const activeWord = userWord || defaultWords[currentWordIndex];
+      const letter = activeWord[currentSandLetterIndex];
+      
+      // Update sand grid with new letter
+      const newGrid = addLetterToGrid(sandGrid, gridX, gridY, letter);
+      setSandGrid(newGrid);
+      
+      // Increment letter index
+      setCurrentSandLetterIndex((prevIndex) => (prevIndex + 1) % activeWord.length);
+    }
     
-    // Get click position relative to the pre element
-    const rect = preRef.current.getBoundingClientRect();
-    const relativeX = e.clientX - rect.left;
-    const relativeY = e.clientY - rect.top;
-    
-    // Convert to grid coordinates
-    const gridX = Math.floor(relativeX / charDimensions.width);
-    const gridY = Math.floor(relativeY / charDimensions.height);
-    
-    // Get the letter to add
-    const activeWord = userWord || defaultWords[currentWordIndex];
-    const letter = activeWord[currentSandLetterIndex];
-    
-    // Update sand grid with new letter
-    const newGrid = addLetterToGrid(sandGrid, gridX, gridY, letter);
-    setSandGrid(newGrid);
-    
-    // Increment letter index
-    setCurrentSandLetterIndex((prevIndex) => (prevIndex + 1) % activeWord.length);
+    // For default mode, create a new ripple effect
+    if (mode === "default" && gridRef.current && configRef.current) {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        const relativeX = e.clientX - rect.left;
+        const relativeY = e.clientY - rect.top;
+        
+        // Convert to grid coordinates
+        const gridX = Math.floor(relativeX / (configRef.current.cellWidth || 10));
+        const gridY = Math.floor(relativeY / (configRef.current.cellHeight || 16));
+        
+        setBackgroundEffects({
+          rippleRadius: 0,
+          rippleActive: true,
+        });
+      }
+    }
   };
 
-  // Initialize grids on mount and when mode changes
+  // Initialize ASCII engine and animation
   useEffect(() => {
-    if (!preRef.current) return;
+    if (!containerRef.current || !canvasRef.current) return;
     
-    const charWidth = 9; // pixels, monospace font
-    const charHeight = 16; // pixels, monospace font
+    // Initialize ASCII engine
+    const { grid, config } = initAsciiEngine(containerRef.current, canvasRef.current, {
+      backgroundColor: isDarkTheme ? '#000000' : '#ffffff',
+      textColor: isDarkTheme ? '#00ff00' : '#333333',
+      cellWidth: 10,
+      cellHeight: 16,
+      fontFamily: 'monospace'
+    });
     
-    // Update character dimensions if needed
-    if (!dimensionsInitialized.current) {
-      setCharDimensions({ width: charWidth, height: charHeight });
-      dimensionsInitialized.current = true;
-    }
+    gridRef.current = grid;
+    configRef.current = config;
     
-    const cols = Math.floor(preRef.current.offsetWidth / charWidth);
-    const rows = Math.floor(preRef.current.offsetHeight / charHeight);
-    
-    // Only initialize grids if they're null or we're on first mount
-    if (mode === "sand" && (sandGrid === null || isInitialMount.current)) {
-      setSandGrid(createEmptySandGrid(cols, rows));
-    }
-    
-    if (mode === "gol" && (golGrid === null || isInitialMount.current)) {
-      setGolGrid(createGOLGrid(cols, rows, 0.3));
-    }
-    
-    isInitialMount.current = false;
-  }, [mode, sandGrid, golGrid]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    let frameId: number;
-    let lastTimestamp = 0;
-    let cols = 0;
-    let rows = 0;
-    let localFrameCount = frameCount;
-
-    // Function to handle window resize
-    const handleResize = () => {
-      if (!preRef.current) return;
+    // For legacy sand/GOL modes, also initialize those grids
+    if (mode === "sand" || mode === "gol") {
+      const cols = Math.floor(containerRef.current.offsetWidth / config.cellWidth);
+      const rows = Math.floor(containerRef.current.offsetHeight / config.cellHeight);
       
-      // Estimate character dimensions (this is approximate)
-      const charWidth = 9; // pixels, monospace font
-      const charHeight = 16; // pixels, monospace font
-      
-      // Only update dimensions if they've actually changed
-      if (charDimensions.width !== charWidth || charDimensions.height !== charHeight) {
-        setCharDimensions({ width: charWidth, height: charHeight });
+      if (mode === "sand") {
+        setSandGrid(createEmptySandGrid(cols, rows));
+      } else if (mode === "gol") {
+        setGolGrid(createGOLGrid(cols, rows, 0.3));
       }
       
-      cols = Math.floor(preRef.current.offsetWidth / charWidth);
-      rows = Math.floor(preRef.current.offsetHeight / charHeight);
+      setCharDimensions({ width: config.cellWidth, height: config.cellHeight });
+    }
+    
+    // Start with initial word
+    if (mode === "default" && gridRef.current) {
+      const centerY = Math.floor(gridRef.current.length / 2);
+      const initialWord = userWord || defaultWords[currentWordIndex];
+      centerWord(grid, initialWord, centerY);
+    }
+    
+    // Handle mouse movement
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current || !gridRef.current || !configRef.current) return;
       
-      // Update grid dimensions, but avoid state updates in the resize handler
-      // They'll be handled by the animation loop
+      const rect = containerRef.current.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      updateMousePosition(mouseX, mouseY, gridRef.current, configRef.current);
     };
-
-    // Call once initially
-    handleResize();
-
+    
+    // Handle window resize
+    const onResize = () => {
+      if (!containerRef.current || !canvasRef.current || !gridRef.current || !configRef.current) return;
+      handleResize(containerRef.current, canvasRef.current, gridRef.current, configRef.current);
+      
+      // Also resize legacy grids if needed
+      if (mode === "sand" || mode === "gol") {
+        const cols = Math.floor(containerRef.current.offsetWidth / configRef.current.cellWidth);
+        const rows = Math.floor(containerRef.current.offsetHeight / configRef.current.cellHeight);
+        
+        if (mode === "sand") {
+          setSandGrid(createEmptySandGrid(cols, rows));
+        } else if (mode === "gol") {
+          setGolGrid(createGOLGrid(cols, rows, 0.3));
+        }
+      }
+    };
+    
+    containerRef.current.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('resize', onResize);
+    
     // Animation loop
     const animate = (timestamp: number) => {
-      const elapsedTime = timestamp - lastTimestamp;
-      const colors = getThemeColors();
+      if (!gridRef.current || !configRef.current) return;
       
-      // Cap at ~30 FPS
-      if (elapsedTime > 33) {
-        lastTimestamp = timestamp;
+      // Control to ~30 FPS
+      const elapsed = timestamp - lastTimestampRef.current;
+      if (elapsed < 33) { // ~30 FPS
+        animationFrameRef.current = requestAnimationFrame(animate);
+        return;
+      }
+      
+      lastTimestampRef.current = timestamp;
+      frameCountRef.current++;
+      
+      // Clear the grid (background cells only)
+      for (let y = 0; y < gridRef.current.length; y++) {
+        for (let x = 0; x < gridRef.current[0].length; x++) {
+          const cell = gridRef.current[y][x];
+          if (cell.type === 'background') {
+            cell.char = ' ';
+            cell.intensity = 0;
+          }
+        }
+      }
+      
+      // Handle different modes
+      if (mode === "default") {
+        // Generate background patterns
+        noiseGenerator(gridRef.current, { intensity: 0.2, speed: 0.5 });
+        waveGenerator(gridRef.current, { 
+          amplitude: 0.3, 
+          frequency: 0.07, 
+          speed: 0.3 
+        });
         
-        if (!preRef.current) {
-          frameId = requestAnimationFrame(animate);
-          return;
+        // Handle word display and transitions
+        const activeWord = userWord || defaultWords[currentWordIndex];
+        const centerY = Math.floor(gridRef.current.length / 2);
+        
+        // Check if we should start a new transition
+        if (frameCountRef.current % 300 === 0 && !currentTransition && !userWord) {
+          const nextIndex = (currentWordIndex + 1) % defaultWords.length;
+          const nextWord = defaultWords[nextIndex];
+          
+          const transition = startWordTransition(
+            gridRef.current,
+            activeWord,
+            nextWord,
+            'dissolve',
+            Math.floor((gridRef.current[0].length - nextWord.length) / 2),
+            centerY
+          );
+          
+          setCurrentTransition(transition);
         }
         
-        // Increment frame count locally instead of using setState
-        localFrameCount++;
-        
-        // Only update the state occasionally to prevent too many rerenders
-        if (localFrameCount % 30 === 0) {
-          setFrameCount(localFrameCount);
+        // Update transition if active
+        if (currentTransition) {
+          const isComplete = updateWordTransition(
+            gridRef.current,
+            currentTransition,
+            0.05 // Control transition speed
+          );
+          
+          if (isComplete) {
+            setCurrentWordIndex((prevIndex) => (prevIndex + 1) % defaultWords.length);
+            setCurrentTransition(null);
+          }
+        } else if (!userWord) {
+          // If no transition active and not using userWord, display current word
+          centerWord(
+            gridRef.current, 
+            activeWord, 
+            centerY
+          );
+        } else {
+          // If using userWord, always display it
+          centerWord(
+            gridRef.current, 
+            userWord, 
+            centerY
+          );
         }
         
-        // Check if we should change the word (only in default mode)
-        const shouldTransition = mode === "default" && localFrameCount % 300 === 0 && !isTransitioning;
-        if (shouldTransition) {
-          setIsTransitioning(true);
-          setTransitionProgress(0);
+        // Handle ripple effect when clicked
+        if (backgroundEffects.rippleActive) {
+          rippleGenerator(gridRef.current, {
+            centerX: Math.floor(gridRef.current[0].length / 2),
+            centerY: Math.floor(gridRef.current.length / 2),
+            radius: backgroundEffects.rippleRadius,
+            maxRadius: Math.max(gridRef.current.length, gridRef.current[0].length),
+            intensity: 0.7
+          });
+          
+          // Increase ripple radius
+          setBackgroundEffects(prev => ({
+            ...prev,
+            rippleRadius: prev.rippleRadius + 1,
+          }));
+          
+          // Deactivate after max radius
+          if (backgroundEffects.rippleRadius > Math.max(gridRef.current.length, gridRef.current[0].length)) {
+            setBackgroundEffects({
+              rippleRadius: 0,
+              rippleActive: false
+            });
+          }
         }
         
-        // Update sand grid if in sand mode
-        if (mode === "sand" && sandGrid && localFrameCount % 5 === 0) {
+        // Add cursor heat effect
+        if (configRef.current.mousePosition) {
+          cursorHeatGenerator(gridRef.current, {
+            mouseX: configRef.current.mousePosition.x,
+            mouseY: configRef.current.mousePosition.y,
+            radius: 8,
+            intensity: 0.7
+          });
+        }
+      } 
+      // Legacy modes
+      else if (mode === "sand" && sandGrid) {
+        // Update sand simulation every few frames
+        if (frameCountRef.current % 5 === 0) {
           setSandGrid(updateSand(sandGrid));
         }
         
-        // Update Game of Life grid if in gol mode
-        if (mode === "gol" && golGrid && localFrameCount % 10 === 0) {
+        // Draw sand grid to ASCII grid
+        for (let y = 0; y < sandGrid.length && y < gridRef.current.length; y++) {
+          for (let x = 0; x < sandGrid[0].length && x < gridRef.current[0].length; x++) {
+            if (sandGrid[y][x] !== ' ') {
+              gridRef.current[y][x].char = sandGrid[y][x];
+              gridRef.current[y][x].intensity = 1;
+            }
+          }
+        }
+      } 
+      else if (mode === "gol" && golGrid) {
+        // Update Game of Life every 10 frames
+        if (frameCountRef.current % 10 === 0) {
           setGolGrid(updateGOL(golGrid));
         }
         
-        // If transitioning, update progress
-        if (mode === "default" && isTransitioning) {
-          setTransitionProgress(prev => {
-            const newProgress = prev + 0.05;
-            if (newProgress >= 1) {
-              setIsTransitioning(false);
-              // Change the word when transition completes
-              setCurrentWordIndex(prevIndex => (prevIndex + 1) % defaultWords.length);
-              return 0;
+        // Draw GOL grid to ASCII grid
+        for (let y = 0; y < golGrid.length && y < gridRef.current.length; y++) {
+          for (let x = 0; x < golGrid[0].length && x < gridRef.current[0].length; x++) {
+            if (golGrid[y][x]) {
+              gridRef.current[y][x].char = isDarkTheme ? '#' : '@';
+              gridRef.current[y][x].intensity = 1;
             }
-            return newProgress;
-          });
-        }
-        
-        // Get the current word to display
-        const currentWord = userWord || defaultWords[currentWordIndex];
-        
-        // Generate a grid of ASCII characters
-        let fullFrameString = "";
-        
-        if (mode === "sand" && sandGrid) {
-          // Render the sand grid
-          for (let y = 0; y < sandGrid.length; y++) {
-            for (let x = 0; x < sandGrid[0].length; x++) {
-              fullFrameString += sandGrid[y][x];
-            }
-            fullFrameString += "\n";
           }
-        } else if (mode === "gol" && golGrid) {
-          // Render the Game of Life grid
-          for (let y = 0; y < golGrid.length; y++) {
-            for (let x = 0; x < golGrid[0].length; x++) {
-              fullFrameString += golGrid[y][x] ? isDarkTheme ? "#" : "@" : " ";
-            }
-            fullFrameString += "\n";
-          }
-        } else {
-          // Default mode - render the word in center with ripple effect
-          for (let y = 0; y < rows; y++) {
-            for (let x = 0; x < cols; x++) {
-              // Calculate distance from center
-              const centerX = Math.floor(cols / 2);
-              const centerY = Math.floor(rows / 2);
-              
-              // Check if this position is part of the word display
-              if (
-                y === centerY && 
-                x >= centerX - Math.floor(currentWord.length / 2) && 
-                x < centerX - Math.floor(currentWord.length / 2) + currentWord.length
-              ) {
-                // Display the word in the center
-                const charIndex = x - (centerX - Math.floor(currentWord.length / 2));
-                
-                if (isTransitioning) {
-                  // During transition, randomly show different characters
-                  const rand = Math.random();
-                  if (rand < transitionProgress) {
-                    fullFrameString += currentWord[charIndex];
-                  } else {
-                    const chars = isDarkTheme ? ".:-=+*#%@" : "@%#*+=:-. ";
-                    fullFrameString += chars[Math.floor(Math.random() * chars.length)];
-                  }
-                } else {
-                  fullFrameString += currentWord[charIndex];
-                }
-              } else {
-                // Generate a ripple-like pattern for background
-                const distance = Math.sqrt(
-                  Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
-                );
-                
-                const waveVal = Math.sin(distance * 0.3 - localFrameCount * 0.1);
-                const chars = isDarkTheme ? " .:+*#@" : "@#*+:. ";
-                const charIndex = Math.floor(
-                  ((waveVal + 1) / 2) * (chars.length - 1)
-                );
-                fullFrameString += chars[charIndex];
-              }
-            }
-            fullFrameString += "\n";
-          }
-        }
-        
-        // Update the DOM with the full frame string
-        if (preRef.current) {
-          preRef.current.textContent = fullFrameString;
-          
-          // Update background and text colors based on theme
-          preRef.current.style.backgroundColor = colors.background;
-          preRef.current.style.color = colors.foreground;
         }
       }
       
-      // Continue the animation loop
-      frameId = requestAnimationFrame(animate);
+      // Render the frame
+      if (canvasRef.current && gridRef.current && configRef.current) {
+        renderFrame(canvasRef.current, gridRef.current, configRef.current);
+      }
+      
+      // Continue animation
+      animationFrameRef.current = requestAnimationFrame(animate);
     };
-
-    // Start the animation
-    frameId = requestAnimationFrame(animate);
     
-    // Add resize listener
-    window.addEventListener("resize", handleResize);
-
+    // Start animation
+    animationFrameRef.current = requestAnimationFrame(animate);
+    
     // Cleanup function
     return () => {
-      cancelAnimationFrame(frameId);
-      window.removeEventListener("resize", handleResize);
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      
+      if (containerRef.current) {
+        containerRef.current.removeEventListener('mousemove', handleMouseMove);
+      }
+      
+      window.removeEventListener('resize', onResize);
     };
-  }, [currentWordIndex, defaultWords, isTransitioning, mode, sandGrid, golGrid, transitionProgress, userWord, resolvedTheme, charDimensions]);
+  }, [userWord, mode, isDarkTheme, currentWordIndex, backgroundEffects]);
 
   return (
     <div 
-      ref={containerRef} 
+      className="absolute top-0 left-0 w-full h-full select-none"
+      ref={containerRef}
       onClick={handleClick}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
+      style={{ 
+        overflow: "hidden", 
         zIndex: 1,
-        pointerEvents: mode === 'sand' ? 'auto' : 'none',
+        pointerEvents: "none"
       }}
     >
-      <pre 
-        ref={preRef} 
-        id="ascii-canvas" 
-        aria-hidden="true" 
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          zIndex: 1,
-          whiteSpace: 'pre',
-          fontFamily: 'monospace',
-          margin: 0,
-          padding: 0,
-          overflow: 'hidden',
-          userSelect: 'none',
-          // Colors will be set dynamically in the effect
-          backgroundColor: getThemeColors().background,
-          color: getThemeColors().foreground
-        }}
-      ></pre>
+      <canvas
+        ref={canvasRef}
+        className="absolute top-0 left-0 w-full h-full pointer-events-none"
+        aria-hidden="true"
+      />
     </div>
   );
 };

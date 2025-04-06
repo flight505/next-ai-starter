@@ -27,6 +27,9 @@ export default function NavBar() {
           <li>
             <Link href="/engine-demo" className="hover:text-accent-hover">Engine Demo</Link>
           </li>
+          <li className="font-mono mx-3">
+            <Link href="/background-demo" className="hover:text-accent-hover">Background Demo</Link>
+          </li>
         </ul>
       </div>
     </nav>
