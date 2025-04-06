@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { ThemeToggle } from './theme/ThemeToggle';
 
 type AsciiOverlayProps = {
   children?: React.ReactNode;
@@ -97,10 +98,13 @@ export default function AsciiOverlay({ children }: AsciiOverlayProps) {
     <div className="overlay">
       <h1 className="text-2xl font-mono mb-6">ASCII PORTFOLIO</h1>
       
-      <p className="text-base font-mono mb-8">
-        Welcome to my ASCII-themed portfolio website. I am a developer passionate about
-        clean code, creative interfaces, and the beauty of simplicity.
-      </p>
+      <div className="flex justify-between items-center mb-6">
+        <p className="text-base font-mono">
+          Welcome to my ASCII-themed portfolio website. I am a developer passionate about
+          clean code, creative interfaces, and the beauty of simplicity.
+        </p>
+        <ThemeToggle />
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>

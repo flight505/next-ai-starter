@@ -107,4 +107,59 @@ export function updateSand(grid: SandGrid): SandGrid {
   }
   
   return newGrid;
+}
+
+/**
+ * Create a sand grid with specified dimensions
+ */
+export function createSandGrid(cols: number, rows: number): SandGrid {
+  return createEmptySandGrid(cols, rows);
+}
+
+/**
+ * Add a letter formed by sand particles at specified coordinates
+ */
+export function addSandLetter(
+  grid: SandGrid, 
+  x: number, 
+  y: number, 
+  letter: string
+): void {
+  // Add a cluster of the same letter to create a bigger impact
+  // The pattern depends on the letter size we want
+  for (let offsetY = 0; offsetY < 3; offsetY++) {
+    for (let offsetX = 0; offsetX < 3; offsetX++) {
+      // Skip some positions to create a more interesting pattern
+      if (Math.random() < 0.7) {
+        const targetX = x + offsetX - 1;
+        const targetY = y + offsetY - 1;
+        
+        if (targetX >= 0 && targetY >= 0 && 
+            targetY < grid.length && targetX < grid[0].length && 
+            grid[targetY][targetX] === ' ') {
+          grid[targetY][targetX] = letter;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Convert a sand grid to an ASCII representation
+ */
+export function sandToAscii(grid: SandGrid, characters: string = '█▓▒░ '): string {
+  const rows = grid.length;
+  const cols = grid[0].length;
+  let result = '';
+  
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      // If it's a letter/character, keep it as is
+      // If it's empty, use the space character
+      result += grid[y][x] === ' ' ? characters[characters.length - 1] : grid[y][x];
+    }
+    result += '\n';
+  }
+  
+  return result;
 } 

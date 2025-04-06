@@ -88,13 +88,13 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
+    --background: #ffffff;
+    --foreground: #111111;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 47.4% 11.2%;
-    --border: 214.3 31.8% 91.4%;
+    --border: #cccccc;
     --input: 214.3 31.8% 91.4%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 47.4% 11.2%;
@@ -102,24 +102,28 @@ body {
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-    --accent: 210 40% 96.1%;
+    --accent: #18984a;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 100% 50%;
     --destructive-foreground: 210 40% 98%;
     --ring: 215 20.2% 65.1%;
     --radius: 0.5rem;
+    --accent-hover: #0d7a3a;
+    --overlay-bg: rgba(255, 255, 255, 0.7);
+    --accent-muted: #4ca578;
+    --overlay: rgba(255, 255, 255, 0.8);
   }
 
   .dark {
-    --background: 224 71% 4%;
-    --foreground: 213 31% 91%;
+    --background: #000000;
+    --foreground: #13f07c;
     --muted: 223 47% 11%;
     --muted-foreground: 215.4 16.3% 56.9%;
-    --accent: 216 34% 17%;
+    --accent: #13f07c;
     --accent-foreground: 210 40% 98%;
     --popover: 224 71% 4%;
     --popover-foreground: 215 20.2% 65.1%;
-    --border: 216 34% 17%;
+    --border: #009900;
     --input: 216 34% 17%;
     --card: 224 71% 4%;
     --card-foreground: 213 31% 91%;
@@ -130,6 +134,15 @@ body {
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
     --ring: 216 34% 17%;
+    --overlay-bg: rgba(0, 0, 0, 0.7);
+    --accent-hover: #0fbf62;
+    --accent-muted: #0a8245;
+    --overlay: rgba(0, 0, 0, 0.8);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
   }
 }
 
@@ -170,24 +183,24 @@ body {
   position: relative;
   z-index: 10;
   padding: 2ch;
-  color: #0f0;
+  color: var(--foreground);
   font-family: monospace;
-  background-color: rgba(0, 0, 0, 0.7);
-  border: 1px solid #0f0;
+  background-color: var(--overlay-bg);
+  border: 1px solid var(--border);
   max-width: 800px;
   margin: 2rem auto;
 }
 
 .overlay a {
-  color: #0f0;
+  color: var(--foreground);
   text-decoration: none;
   display: inline-block;
   padding: 0 0.5ch;
 }
 
 .overlay a:hover {
-  color: #000;
-  background-color: #0f0;
+  color: var(--background);
+  background-color: var(--accent);
   transition: background-color 0.1s, color 0.1s;
 }
 

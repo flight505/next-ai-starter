@@ -83,15 +83,15 @@ export function updateGOL(grid: GOLGrid): GOLGrid {
 /**
  * Convert a Game of Life grid to an ASCII representation
  */
-export function golToAscii(grid: GOLGrid): string {
+export function golToAscii(grid: GOLGrid, characters: string = '█▓▒░ '): string {
   const rows = grid.length;
   const cols = grid[0].length;
   let result = '';
   
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
-      // You can customize characters here
-      result += grid[y][x] ? '#' : ' ';
+      // Use the provided characters (first char for alive cells, last for dead)
+      result += grid[y][x] ? characters[0] : characters[characters.length - 1];
     }
     result += '\n';
   }

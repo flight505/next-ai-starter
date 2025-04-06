@@ -40,3 +40,7 @@
 - Implemented Conway's Game of Life animation and created a Contact page featuring the Game of Life as an interactive background with a styled contact form.
 - Created AsciiOverlay component with navigation links, implemented hover-interactive styling, and integrated it with the layout structure to improve site navigation and user experience.
 - Created multiple pages (Home, About, Projects, Sand) with consistent ASCII styling, each featuring different animation modes (default, sand) and implemented responsive layouts with mobile-friendly design.
+- Created Contact page with Game of Life ASCII animation that responds to light/dark theme changes
+- Created About page with interactive Sand Game animation that supports user clicks
+- Fixed ThemeProvider to resolve build errors
+- Updated navigation to include links to new pages

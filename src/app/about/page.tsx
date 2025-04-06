@@ -1,72 +1,85 @@
 "use client";
 
-import React from 'react';
-import AsciiBackground from '@/components/AsciiBackground';
-import NavBar from '@/components/NavBar';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useTheme } from 'next-themes';
+import SandGameAnimation from '@/components/SandGameAnimation';
 
 export default function AboutPage() {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return (
-    <div className="relative min-h-screen">
-      <AsciiBackground mode="sand" />
-      <NavBar />
+    <main className="relative w-full min-h-screen flex items-center justify-center px-4 py-16">
+      <div className="absolute top-0 left-0 right-0 bottom-0 z-0">
+        <SandGameAnimation />
+      </div>
       
-      <main className="container mx-auto p-4 pt-20">
-        <div className="bg-black/80 p-6 border border-green-500 max-w-3xl mx-auto">
-          <h1 className="text-3xl font-mono text-green-500 mb-6">ABOUT ME</h1>
-          
-          <section className="mb-8">
-            <h2 className="text-xl font-mono text-green-400 mb-4">BACKGROUND</h2>
-            <p className="font-mono mb-4">
-              I am a passionate developer with experience in building web applications
-              and interactive digital experiences. My journey in programming started
-              with a fascination for how things work under the hood, which has evolved
-              into creating elegant solutions for complex problems.
-            </p>
+      <div className="relative z-10 w-full max-w-2xl mx-auto p-6 bg-background/80 dark:bg-background/80 backdrop-blur-sm rounded border border-accent">
+        <h1 className="text-2xl md:text-3xl font-mono mb-6 text-foreground">About Me</h1>
+        
+        <div className="grid gap-6">
+          <div className="space-y-2">
+            <h2 className="text-xl font-mono text-accent">Who I Am</h2>
             <p className="font-mono">
-              With a background in computer science and a keen interest in creative coding,
-              I bring both technical expertise and artistic sensibility to my projects.
+              I'm a developer passionate about creating unique digital experiences that blend 
+              creativity with technology. With a background in both design and programming, 
+              I enjoy building interactive projects that push the boundaries of what's possible on the web.
             </p>
-          </section>
+          </div>
           
-          <section className="mb-8">
-            <h2 className="text-xl font-mono text-green-400 mb-4">SKILLS</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-mono text-green-300 mb-2">LANGUAGES</h3>
-                <ul className="list-disc list-inside font-mono">
-                  <li>JavaScript/TypeScript</li>
-                  <li>HTML/CSS</li>
-                  <li>Python</li>
-                  <li>C#</li>
-                </ul>
+          <div className="space-y-2">
+            <h2 className="text-xl font-mono text-accent">Skills & Technologies</h2>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <p className="font-mono text-foreground">• JavaScript/TypeScript</p>
+                <p className="font-mono text-foreground">• React & Next.js</p>
+                <p className="font-mono text-foreground">• Node.js</p>
+                <p className="font-mono text-foreground">• HTML/CSS/Tailwind</p>
               </div>
-              <div>
-                <h3 className="font-mono text-green-300 mb-2">FRAMEWORKS</h3>
-                <ul className="list-disc list-inside font-mono">
-                  <li>React</li>
-                  <li>Next.js</li>
-                  <li>Node.js</li>
-                  <li>TailwindCSS</li>
-                </ul>
+              <div className="space-y-1">
+                <p className="font-mono text-foreground">• Creative Coding</p>
+                <p className="font-mono text-foreground">• UI/UX Design</p>
+                <p className="font-mono text-foreground">• Responsive Design</p>
+                <p className="font-mono text-foreground">• WebGL/Three.js</p>
               </div>
             </div>
-          </section>
+          </div>
           
-          <section className="mb-8">
-            <h2 className="text-xl font-mono text-green-400 mb-4">INTERESTS</h2>
-            <p className="font-mono">
-              When I'm not coding, you can find me exploring new technologies, 
-              contributing to open-source projects, or experimenting with creative
-              coding and generative art. I believe in continuous learning and sharing
-              knowledge with the community.
-            </p>
-          </section>
+          <div className="space-y-2">
+            <h2 className="text-xl font-mono text-accent">Experience</h2>
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-mono text-foreground font-bold">Senior Frontend Developer</h3>
+                <p className="font-mono text-accent-muted">Creative Tech Agency • 2020-Present</p>
+                <p className="font-mono text-foreground mt-1">
+                  Lead development of interactive web experiences for clients across various industries.
+                </p>
+              </div>
+              
+              <div>
+                <h3 className="font-mono text-foreground font-bold">Web Developer</h3>
+                <p className="font-mono text-accent-muted">Digital Studio • 2017-2020</p>
+                <p className="font-mono text-foreground mt-1">
+                  Built responsive websites and web applications with focus on performance and accessibility.
+                </p>
+              </div>
+            </div>
+          </div>
           
-          <div className="mt-8 text-center font-mono text-green-300">
-            <p>Click anywhere on the screen to drop sand letters and watch them fall!</p>
+          <div className="mt-6">
+            <Link href="/" className="font-mono text-accent hover:underline">
+              ← Back to Home
+            </Link>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 } 

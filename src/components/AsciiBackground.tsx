@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 import { SandGrid, createEmptySandGrid, updateSand, addLetterToGrid } from "@/lib/animations/sandGame";
 import { GOLGrid, createGOLGrid, updateGOL } from "@/lib/animations/gameOfLife";
 
@@ -10,6 +11,8 @@ type AsciiBackgroundProps = {
 };
 
 const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) => {
+  const { resolvedTheme } = useTheme();
+  const isDarkTheme = resolvedTheme === "dark";
   const preRef = useRef<HTMLPreElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const defaultWords = ["HELLO", "WORLD", "ASCII"];
@@ -22,6 +25,15 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
   const [currentSandLetterIndex, setCurrentSandLetterIndex] = useState(0);
   const [charDimensions, setCharDimensions] = useState({ width: 9, height: 16 });
   const dimensionsInitialized = useRef(false);
+
+  // Function to get theme-specific colors
+  const getThemeColors = () => {
+    return {
+      background: isDarkTheme ? '#000' : '#fff',
+      foreground: isDarkTheme ? '#0f0' : '#333',
+      accent: isDarkTheme ? '#00ff00' : '#006600',
+    };
+  };
 
   // Handle click for sand game
   const handleClick = (e: React.MouseEvent) => {
@@ -91,6 +103,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
     // Animation loop
     const animate = (timestamp: number) => {
       const elapsedTime = timestamp - lastTimestamp;
+      const colors = getThemeColors();
       
       // Cap at ~30 FPS
       if (elapsedTime > 33) {
@@ -153,7 +166,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
           // Render the Game of Life grid
           for (let y = 0; y < golGrid.length; y++) {
             for (let x = 0; x < golGrid[0].length; x++) {
-              fullFrameString += golGrid[y][x] ? "#" : " ";
+              fullFrameString += golGrid[y][x] ? isDarkTheme ? "#" : "@" : " ";
             }
             fullFrameString += "\n";
           }
@@ -180,7 +193,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
                   if (rand < transitionProgress) {
                     fullFrameString += currentWord[charIndex];
                   } else {
-                    const chars = ".:-=+*#%@";
+                    const chars = isDarkTheme ? ".:-=+*#%@" : "@%#*+=:-. ";
                     fullFrameString += chars[Math.floor(Math.random() * chars.length)];
                   }
                 } else {
@@ -193,7 +206,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
                 );
                 
                 const waveVal = Math.sin(distance * 0.3 - frameCount * 0.1);
-                const chars = " .:+*#@";
+                const chars = isDarkTheme ? " .:+*#@" : "@#*+:. ";
                 const charIndex = Math.floor(
                   ((waveVal + 1) / 2) * (chars.length - 1)
                 );
@@ -206,6 +219,12 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
         
         // Update the DOM with the full frame string
         preRef.current.textContent = fullFrameString;
+        
+        // Update background and text colors based on theme
+        if (preRef.current) {
+          preRef.current.style.backgroundColor = colors.background;
+          preRef.current.style.color = colors.foreground;
+        }
       }
       
       // Continue the animation loop
@@ -223,7 +242,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", handleResize);
     };
-  }, [currentWordIndex, defaultWords, frameCount, isTransitioning, mode, sandGrid, golGrid, transitionProgress, userWord]);
+  }, [currentWordIndex, defaultWords, frameCount, isTransitioning, mode, sandGrid, golGrid, transitionProgress, userWord, resolvedTheme]);
 
   return (
     <div 
@@ -256,8 +275,9 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
           padding: 0,
           overflow: 'hidden',
           userSelect: 'none',
-          backgroundColor: '#000',
-          color: '#0f0'
+          // Colors will be set dynamically in the effect
+          backgroundColor: getThemeColors().background,
+          color: getThemeColors().foreground
         }}
       ></pre>
     </div>

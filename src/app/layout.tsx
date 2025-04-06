@@ -24,8 +24,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen bg-black text-green-500 dark:bg-black dark:text-green-500">
-        <ThemeProvider defaultTheme="dark" enableSystem>
+      <body className="min-h-screen bg-background text-foreground dark:bg-background dark:text-foreground">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <ClientProvider>
             <TRPCReactProvider>
               <AsciiBackground />
