@@ -44,3 +44,5 @@
 - Created About page with interactive Sand Game animation that supports user clicks
 - Fixed ThemeProvider to resolve build errors
 - Updated navigation to include links to new pages
+- Fixed AsciiBackground component's infinite update loop by using a local frame counter instead of setState in the animation loop
+- Updated Sand page with theme-aware styling to properly support light/dark mode

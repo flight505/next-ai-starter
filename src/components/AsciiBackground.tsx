@@ -67,6 +67,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
     let lastTimestamp = 0;
     let cols = 0;
     let rows = 0;
+    let localFrameCount = frameCount;
 
     // Function to handle window resize
     const handleResize = () => {
@@ -114,23 +115,28 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
           return;
         }
         
-        // Increment frame count
-        setFrameCount(prevCount => {
-          // Check if we should change the word (only in default mode)
-          if (mode === "default" && prevCount % 300 === 0 && !isTransitioning) {
-            setIsTransitioning(true);
-            setTransitionProgress(0);
-          }
-          return prevCount + 1;
-        });
+        // Increment frame count locally instead of using setState
+        localFrameCount++;
+        
+        // Only update the state occasionally to prevent too many rerenders
+        if (localFrameCount % 30 === 0) {
+          setFrameCount(localFrameCount);
+        }
+        
+        // Check if we should change the word (only in default mode)
+        const shouldTransition = mode === "default" && localFrameCount % 300 === 0 && !isTransitioning;
+        if (shouldTransition) {
+          setIsTransitioning(true);
+          setTransitionProgress(0);
+        }
         
         // Update sand grid if in sand mode
-        if (mode === "sand" && sandGrid && frameCount % 5 === 0) {
+        if (mode === "sand" && sandGrid && localFrameCount % 5 === 0) {
           setSandGrid(updateSand(sandGrid));
         }
         
         // Update Game of Life grid if in gol mode
-        if (mode === "gol" && golGrid && frameCount % 10 === 0) {
+        if (mode === "gol" && golGrid && localFrameCount % 10 === 0) {
           setGolGrid(updateGOL(golGrid));
         }
         
@@ -205,7 +211,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
                   Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
                 );
                 
-                const waveVal = Math.sin(distance * 0.3 - frameCount * 0.1);
+                const waveVal = Math.sin(distance * 0.3 - localFrameCount * 0.1);
                 const chars = isDarkTheme ? " .:+*#@" : "@#*+:. ";
                 const charIndex = Math.floor(
                   ((waveVal + 1) / 2) * (chars.length - 1)
@@ -218,10 +224,10 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
         }
         
         // Update the DOM with the full frame string
-        preRef.current.textContent = fullFrameString;
-        
-        // Update background and text colors based on theme
         if (preRef.current) {
+          preRef.current.textContent = fullFrameString;
+          
+          // Update background and text colors based on theme
           preRef.current.style.backgroundColor = colors.background;
           preRef.current.style.color = colors.foreground;
         }
@@ -242,7 +248,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", handleResize);
     };
-  }, [currentWordIndex, defaultWords, frameCount, isTransitioning, mode, sandGrid, golGrid, transitionProgress, userWord, resolvedTheme]);
+  }, [currentWordIndex, defaultWords, isTransitioning, mode, sandGrid, golGrid, transitionProgress, userWord, resolvedTheme]);
 
   return (
     <div 
