@@ -1,0 +1,11 @@
+body {
+  background-color: #1a1a1a;
+  color: #fff;
+}
+
+.output {
+  font-family: monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  line-height: 10px;
+}

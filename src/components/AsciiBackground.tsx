@@ -25,6 +25,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
   const [currentSandLetterIndex, setCurrentSandLetterIndex] = useState(0);
   const [charDimensions, setCharDimensions] = useState({ width: 9, height: 16 });
   const dimensionsInitialized = useRef(false);
+  const isInitialMount = useRef(true);
 
   // Function to get theme-specific colors
   const getThemeColors = () => {
@@ -60,6 +61,34 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
     setCurrentSandLetterIndex((prevIndex) => (prevIndex + 1) % activeWord.length);
   };
 
+  // Initialize grids on mount and when mode changes
+  useEffect(() => {
+    if (!preRef.current) return;
+    
+    const charWidth = 9; // pixels, monospace font
+    const charHeight = 16; // pixels, monospace font
+    
+    // Update character dimensions if needed
+    if (!dimensionsInitialized.current) {
+      setCharDimensions({ width: charWidth, height: charHeight });
+      dimensionsInitialized.current = true;
+    }
+    
+    const cols = Math.floor(preRef.current.offsetWidth / charWidth);
+    const rows = Math.floor(preRef.current.offsetHeight / charHeight);
+    
+    // Only initialize grids if they're null or we're on first mount
+    if (mode === "sand" && (sandGrid === null || isInitialMount.current)) {
+      setSandGrid(createEmptySandGrid(cols, rows));
+    }
+    
+    if (mode === "gol" && (golGrid === null || isInitialMount.current)) {
+      setGolGrid(createGOLGrid(cols, rows, 0.3));
+    }
+    
+    isInitialMount.current = false;
+  }, [mode, sandGrid, golGrid]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -77,25 +106,16 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
       const charWidth = 9; // pixels, monospace font
       const charHeight = 16; // pixels, monospace font
       
-      // Only update dimensions on first load or if they've actually changed
-      if (!dimensionsInitialized.current || 
-         (charDimensions.width !== charWidth || charDimensions.height !== charHeight)) {
+      // Only update dimensions if they've actually changed
+      if (charDimensions.width !== charWidth || charDimensions.height !== charHeight) {
         setCharDimensions({ width: charWidth, height: charHeight });
-        dimensionsInitialized.current = true;
       }
       
       cols = Math.floor(preRef.current.offsetWidth / charWidth);
       rows = Math.floor(preRef.current.offsetHeight / charHeight);
       
-      // Initialize sand grid if in sand mode
-      if (mode === "sand") {
-        setSandGrid(createEmptySandGrid(cols, rows));
-      }
-      
-      // Initialize Game of Life grid if in gol mode
-      if (mode === "gol") {
-        setGolGrid(createGOLGrid(cols, rows, 0.3));
-      }
+      // Update grid dimensions, but avoid state updates in the resize handler
+      // They'll be handled by the animation loop
     };
 
     // Call once initially
@@ -248,7 +268,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
       cancelAnimationFrame(frameId);
       window.removeEventListener("resize", handleResize);
     };
-  }, [currentWordIndex, defaultWords, isTransitioning, mode, sandGrid, golGrid, transitionProgress, userWord, resolvedTheme]);
+  }, [currentWordIndex, defaultWords, isTransitioning, mode, sandGrid, golGrid, transitionProgress, userWord, resolvedTheme, charDimensions]);
 
   return (
     <div 
