@@ -175,7 +175,7 @@ export function updateWordTransition(
   const transitionChars = ['.', ':', '+', '*', '#', '@'];
   
   switch (type) {
-    case 'dissolve':
+    case 'dissolve': {
       // Dissolve gradually replaces characters with random transition characters
       for (let i = 0; i < Math.max(fromWord.length, toWord.length); i++) {
         if (i >= grid[0].length || y >= grid.length) continue;
@@ -207,8 +207,9 @@ export function updateWordTransition(
         }
       }
       break;
+    }
       
-    case 'reveal':
+    case 'reveal': {
       // Reveal progressively reveals the new word from noise
       for (let i = 0; i < toWord.length; i++) {
         // Skip positions that would be out of bounds
@@ -234,8 +235,9 @@ export function updateWordTransition(
         }
       }
       break;
+    }
       
-    case 'morph':
+    case 'morph': {
       // Morph smoothly transforms between character sets
       for (let i = 0; i < Math.max(fromWord.length, toWord.length); i++) {
         // Skip positions that would be out of bounds
@@ -281,8 +283,9 @@ export function updateWordTransition(
         }
       }
       break;
+    }
       
-    case 'wipe-left':
+    case 'wipe-left': {
       // Wipe from left to right
       for (let i = 0; i < Math.max(fromWord.length, toWord.length); i++) {
         // Skip positions that would be out of bounds
@@ -313,8 +316,9 @@ export function updateWordTransition(
         }
       }
       break;
+    }
       
-    case 'wipe-right':
+    case 'wipe-right': {
       // Wipe from right to left
       for (let i = Math.max(fromWord.length, toWord.length) - 1; i >= 0; i--) {
         // Skip positions that would be out of bounds
@@ -347,8 +351,9 @@ export function updateWordTransition(
         }
       }
       break;
+    }
       
-    case 'wipe-center':
+    case 'wipe-center': {
       // Wipe from center outward
       const midpoint = Math.floor(Math.max(fromWord.length, toWord.length) / 2);
       
@@ -383,6 +388,7 @@ export function updateWordTransition(
         }
       }
       break;
+    }
   }
   
   // Return true if transition is complete

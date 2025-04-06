@@ -2,178 +2,221 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
-import { createEngine } from '@/lib/asciiEngine/engine';
-import { generateWave, generateCursorHeat, blendGenerators } from '@/lib/asciiEngine/generators';
-import { centerWord, getRandomWord, startWordTransition, updateWordTransition, TransitionType } from '@/lib/asciiEngine/textRenderer';
+import { 
+  initAsciiEngine, AsciiGrid, AsciiCell, AsciiEngineConfig, 
+  updateMousePosition, handleResize, renderFrame 
+} from '@/lib/asciiEngine/engine';
+import { noiseGenerator, waveGenerator, staticGenerator, rainGenerator, rippleGenerator, cursorHeatGenerator } from '@/lib/asciiEngine/generators';
+import { startWordTransition, updateWordTransition, WordTransition, TransitionType, getRandomWord } from '@/lib/asciiEngine/textRenderer';
 import { renderUIFromDOM, updateInteractiveElements } from '@/lib/asciiEngine/uiRenderer';
 
 interface AsciiEngineDemoProps {
   renderUI?: boolean;
-  wordCategories?: ('greetings' | 'tech' | 'creative' | 'phrases' | 'misc')[];
   transitionType?: TransitionType;
+  wordCategories?: string[];
 }
 
-export default function AsciiEngineDemo({
-  renderUI = false,
-  wordCategories = ['tech', 'creative'],
-  transitionType = 'dissolve'
+export default function AsciiEngineDemo({ 
+  renderUI = true, 
+  transitionType = 'dissolve',
+  wordCategories = ['tech']
 }: AsciiEngineDemoProps) {
-  const preRef = useRef<HTMLPreElement>(null);
-  const uiContainerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gridRef = useRef<AsciiGrid | null>(null);
+  const engineConfigRef = useRef<AsciiEngineConfig | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const [currentTransition, setCurrentTransition] = useState<WordTransition | null>(null);
   const { resolvedTheme } = useTheme();
-  const [message, setMessage] = useState<string>('');
-  
+  const isDark = resolvedTheme === 'dark';
+
+  const lastFrameTimeRef = useRef<number>(performance.now());
+  const deltaTimeRef = useRef<number>(0);
+
+  // Initialize the ASCII engine
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (!preRef.current) return;
-    
-    // Initialize the engine
-    const engine = createEngine({
-      element: preRef.current,
-      fps: 30,
-      theme: (resolvedTheme as 'dark' | 'light') || 'dark',
-      mouseEnabled: true
+    if (!containerRef.current || !canvasRef.current) return;
+
+    const { grid, config } = initAsciiEngine(containerRef.current, canvasRef.current, {
+      backgroundColor: isDark ? '#000000' : '#f5f5f5',
+      textColor: isDark ? '#50C878' : '#1a5336',
+      cellWidth: 10,
+      cellHeight: 16,
+      fontFamily: 'monospace'
     });
-    
-    // State for word transitions
-    let activeTransition: ReturnType<typeof startWordTransition> | null = null;
-    let currentWord = getRandomWord(wordCategories);
-    let nextWordTime = performance.now() + 5000;
-    
-    // Custom update function
-    engine.update = (deltaTime) => {
-      // Update time
-      engine.time += deltaTime;
+
+    gridRef.current = grid;
+    engineConfigRef.current = config;
+
+    // Listen for mouse movement
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current || !gridRef.current || !engineConfigRef.current) return;
       
-      // Generate background wave effect
-      generateWave(engine.grid, engine.time, 1.0, 0.05);
+      // Get the relative position within the container
+      const rect = containerRef.current.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
       
-      // Add cursor heat effect
-      if (engine.mouseX >= 0 && engine.mouseY >= 0) {
-        generateCursorHeat(engine.grid, engine.mouseX, engine.mouseY, 10, 0.5);
+      updateMousePosition(
+        mouseX,
+        mouseY,
+        gridRef.current, 
+        engineConfigRef.current
+      );
+    };
+    
+    // Listen for window resize
+    const onResize = () => {
+      if (!containerRef.current || !canvasRef.current || !gridRef.current || !engineConfigRef.current) return;
+      handleResize(containerRef.current, canvasRef.current, gridRef.current, engineConfigRef.current);
+    };
+
+    containerRef.current.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('resize', onResize);
+
+    // Start with initial word transition
+    if (gridRef.current) {
+      const centerY = Math.floor(gridRef.current.length / 2);
+      const initialWord = getRandomWord(wordCategories[0] as any);
+      const transition = startWordTransition(
+        gridRef.current,
+        '', // Start with empty string
+        initialWord,
+        transitionType,
+        // Center horizontally
+        Math.floor((gridRef.current[0].length - initialWord.length) / 2),
+        centerY
+      );
+      setCurrentTransition(transition);
+    }
+
+    // Animation loop
+    const animate = (timestamp: number) => {
+      if (!gridRef.current || !engineConfigRef.current) return;
+      
+      // Calculate delta time (time since last frame)
+      deltaTimeRef.current = (timestamp - lastFrameTimeRef.current) / 1000; // in seconds
+      lastFrameTimeRef.current = timestamp;
+      
+      // Clear the grid (reset to spaces but keep cell metadata)
+      for (let y = 0; y < gridRef.current.length; y++) {
+        for (let x = 0; x < gridRef.current[0].length; x++) {
+          const cell = gridRef.current[y][x];
+          if (cell.type === 'background') {
+            cell.char = ' ';
+            cell.intensity = 0;
+          }
+        }
+      }
+      
+      // Generate background patterns
+      noiseGenerator(gridRef.current, { intensity: 0.3, speed: 1 });
+      
+      // Overlay a wave pattern
+      waveGenerator(gridRef.current, { 
+        amplitude: 0.4, 
+        frequency: 0.05, 
+        speed: 0.5,
+        verticalShift: timestamp / 5000
+      });
+      
+      // Add some cursor heat effect
+      if (engineConfigRef.current.mousePosition) {
+        cursorHeatGenerator(gridRef.current, {
+          mouseX: engineConfigRef.current.mousePosition.x,
+          mouseY: engineConfigRef.current.mousePosition.y,
+          radius: 15,
+          intensity: 1
+        });
       }
       
       // Handle word transitions
-      const now = performance.now();
-      if (!activeTransition && now > nextWordTime) {
-        // Time for a new word
-        const newWord = getRandomWord(wordCategories);
-        const y = Math.floor(engine.rows / 2);
-        
-        // Start the transition
-        activeTransition = startWordTransition(
-          engine.grid,
-          currentWord,
-          newWord,
-          transitionType,
-          Math.floor((engine.cols - newWord.length) / 2),
-          y
-        );
-        
-        currentWord = newWord;
-        setMessage(`Transitioning to: ${newWord}`);
-      }
-      
-      // Update transition if active
-      if (activeTransition) {
+      if (currentTransition) {
         const isComplete = updateWordTransition(
-          engine.grid,
-          activeTransition,
-          deltaTime * 0.5 // Adjust speed
+          gridRef.current,
+          currentTransition,
+          deltaTimeRef.current * 0.8 // Control transition speed
         );
         
         if (isComplete) {
-          activeTransition = null;
-          nextWordTime = now + 5000; // Schedule next transition
+          // Start a new transition after a delay
+          setTimeout(() => {
+            if (!gridRef.current) return;
+            
+            const centerY = Math.floor(gridRef.current.length / 2);
+            const currentWord = currentTransition.toWord;
+            // Get a random word from the selected categories
+            const category = wordCategories[Math.floor(Math.random() * wordCategories.length)] as any;
+            const newWord = getRandomWord(category);
+            
+            const transition = startWordTransition(
+              gridRef.current,
+              currentWord,
+              newWord,
+              transitionType,
+              // Center horizontally
+              Math.floor((gridRef.current[0].length - newWord.length) / 2),
+              centerY
+            );
+            
+            setCurrentTransition(transition);
+          }, 2000);
         }
-      } else {
-        // While not transitioning, display current word
-        centerWord(
-          engine.grid,
-          currentWord,
-          Math.floor(engine.rows / 2),
-          'background'
+      }
+      
+      // Render UI elements if enabled
+      if (renderUI && containerRef.current) {
+        renderUIFromDOM(containerRef.current, gridRef.current, {
+          startX: 2,
+          startY: 2,
+          maxWidth: gridRef.current[0].length - 4,
+          maxHeight: gridRef.current.length - 4
+        });
+      }
+      
+      // Update interactive elements (if any)
+      if (engineConfigRef.current.mousePosition) {
+        updateInteractiveElements(
+          gridRef.current,
+          engineConfigRef.current.mousePosition.x,
+          engineConfigRef.current.mousePosition.y,
+          timestamp * 0.001
         );
       }
       
-      // If UI mode is enabled, render and update UI
-      if (renderUI && uiContainerRef.current) {
-        renderUIFromDOM(engine.grid, uiContainerRef.current, {
-          startX: 5,
-          startY: 5,
-          width: 25,
-          interactive: true
-        });
-        
-        updateInteractiveElements(engine.grid, engine.mouseX, engine.mouseY, engine.time);
+      // Render the frame
+      if (canvasRef.current) {
+        renderFrame(canvasRef.current, gridRef.current, engineConfigRef.current);
       }
+      
+      // Continue animation loop
+      animationFrameRef.current = requestAnimationFrame(animate);
     };
     
-    // Start the engine
-    engine.start();
+    // Start animation
+    animationFrameRef.current = requestAnimationFrame(animate);
     
-    // Cleanup
+    // Cleanup function
     return () => {
-      engine.stop();
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      
+      const currentContainer = containerRef.current;
+      if (currentContainer) {
+        currentContainer.removeEventListener('mousemove', handleMouseMove);
+      }
+      
+      window.removeEventListener('resize', onResize);
     };
-  }, [resolvedTheme, renderUI, wordCategories, transitionType]);
+  }, [transitionType, wordCategories, isDark, renderUI]);
   
   return (
-    <div className="ascii-engine-demo">
-      <pre
-        ref={preRef}
-        className="ascii-canvas"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          margin: 0,
-          padding: 0,
-          overflow: 'hidden',
-          pointerEvents: 'none',
-          fontFamily: 'monospace',
-          whiteSpace: 'pre',
-          zIndex: 1
-        }}
-      ></pre>
-      
-      {renderUI && (
-        <div 
-          ref={uiContainerRef} 
-          className="hidden"
-          style={{ display: 'none' }}
-        >
-          <h1>ASCII Engine Demo</h1>
-          <p>This is a demonstration of the ASCII engine.</p>
-          <div className="column">
-            <h2>Features</h2>
-            <ul>
-              <li>Procedural generation</li>
-              <li>Word transitions</li>
-              <li>Interactive UI</li>
-              <li>Mouse effects</li>
-            </ul>
-          </div>
-          <div className="column">
-            <h2>Links</h2>
-            <ul>
-              <li><a href="/about">About</a></li>
-              <li><a href="/contact">Contact</a></li>
-              <li><a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a></li>
-            </ul>
-          </div>
-        </div>
-      )}
-      
-      <div className="overlay" style={{ position: 'relative', zIndex: 2 }}>
-        {message && (
-          <div className="transition-message" style={{ opacity: 0.7 }}>
-            {message}
-          </div>
-        )}
-      </div>
+    <div className="relative h-full min-h-[500px] w-full" ref={containerRef}>
+      <canvas
+        ref={canvasRef}
+        className="absolute top-0 left-0 w-full h-full"
+      ></canvas>
     </div>
   );
 } 

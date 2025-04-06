@@ -1,82 +1,73 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { aboutPageData } from '@/lib/data/about-data';
+import Image from 'next/image';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { useTheme } from 'next-themes';
-import SandGameAnimation from '@/components/SandGameAnimation';
+import { useState, useEffect } from 'react';
 
 export default function AboutPage() {
-  const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-
+  
+  // Ensure hydration matching by mounting only on the client side
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  if (!mounted) return null;
-
+  
+  if (!mounted) {
+    return null;
+  }
+  
   return (
-    <main className="relative w-full min-h-screen flex items-center justify-center px-4 py-16">
-      <div className="absolute top-0 left-0 right-0 bottom-0 z-0">
-        <SandGameAnimation />
+    <main className="container mx-auto px-4 py-8">
+      <div className="flex justify-end mb-4">
+        <ThemeToggle />
       </div>
       
-      <div className="relative z-10 w-full max-w-2xl mx-auto p-6 bg-background/80 dark:bg-background/80 backdrop-blur-sm rounded border border-accent">
-        <h1 className="text-2xl md:text-3xl font-mono mb-6 text-foreground">About Me</h1>
+      <div className="bg-background/80 dark:bg-background/80 border border-accent p-6 rounded-lg shadow-lg">
+        <h1 className="text-4xl font-bold mb-6 text-foreground">About Me</h1>
         
-        <div className="grid gap-6">
-          <div className="space-y-2">
-            <h2 className="text-xl font-mono text-accent">Who I Am</h2>
-            <p className="font-mono">
-              I'm a developer passionate about creating unique digital experiences that blend 
-              creativity with technology. With a background in both design and programming, 
-              I enjoy building interactive projects that push the boundaries of what's possible on the web.
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="md:w-1/3">
+            <div className="relative w-full aspect-square rounded-lg overflow-hidden border-2 border-accent">
+              <Image 
+                src={aboutPageData.profileImage}
+                alt="Profile"
+                fill
+                className="object-cover"
+              />
+            </div>
+          </div>
+          
+          <div className="md:w-2/3">
+            <h2 className="text-2xl font-bold mb-4 text-accent">
+              {aboutPageData.name}
+            </h2>
+            
+            <p className="mb-4 text-foreground">
+              {aboutPageData.bio}
             </p>
-          </div>
-          
-          <div className="space-y-2">
-            <h2 className="text-xl font-mono text-accent">Skills & Technologies</h2>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <p className="font-mono text-foreground">• JavaScript/TypeScript</p>
-                <p className="font-mono text-foreground">• React & Next.js</p>
-                <p className="font-mono text-foreground">• Node.js</p>
-                <p className="font-mono text-foreground">• HTML/CSS/Tailwind</p>
-              </div>
-              <div className="space-y-1">
-                <p className="font-mono text-foreground">• Creative Coding</p>
-                <p className="font-mono text-foreground">• UI/UX Design</p>
-                <p className="font-mono text-foreground">• Responsive Design</p>
-                <p className="font-mono text-foreground">• WebGL/Three.js</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <h2 className="text-xl font-mono text-accent">Experience</h2>
+            
+            <h3 className="text-xl font-bold mb-2 text-accent">Skills</h3>
+            <ul className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-6">
+              {aboutPageData.skills.map((skill, index) => (
+                <li key={index} className="flex items-center">
+                  <span className="text-accent mr-2">❯</span>
+                  <span className="text-foreground">{skill}</span>
+                </li>
+              ))}
+            </ul>
+            
+            <h3 className="text-xl font-bold mb-2 text-accent">Experience</h3>
             <div className="space-y-4">
-              <div>
-                <h3 className="font-mono text-foreground font-bold">Senior Frontend Developer</h3>
-                <p className="font-mono text-accent-muted">Creative Tech Agency • 2020-Present</p>
-                <p className="font-mono text-foreground mt-1">
-                  Lead development of interactive web experiences for clients across various industries.
-                </p>
-              </div>
-              
-              <div>
-                <h3 className="font-mono text-foreground font-bold">Web Developer</h3>
-                <p className="font-mono text-accent-muted">Digital Studio • 2017-2020</p>
-                <p className="font-mono text-foreground mt-1">
-                  Built responsive websites and web applications with focus on performance and accessibility.
-                </p>
-              </div>
+              {aboutPageData.experience.map((exp, index) => (
+                <div key={index} className="border-l-2 border-accent pl-4">
+                  <h4 className="font-bold text-foreground">{exp.position}</h4>
+                  <p className="text-accent-muted">{exp.company} | {exp.period}</p>
+                  <p className="text-foreground">{exp.description}</p>
+                </div>
+              ))}
             </div>
-          </div>
-          
-          <div className="mt-6">
-            <Link href="/" className="font-mono text-accent hover:underline">
-              ← Back to Home
-            </Link>
           </div>
         </div>
       </div>

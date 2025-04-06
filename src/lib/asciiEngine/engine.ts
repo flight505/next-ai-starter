@@ -1,272 +1,251 @@
 /**
- * ASCII Engine - Core module
- * A unified rendering system for ASCII-based UI and background animations
+ * ASCII Engine - Core Module
+ * Central engine for managing the ASCII grid system and rendering
  */
 
-// Define the core types
-export type AsciiCellType = 'ui' | 'background' | 'interactive';
-
+// Type definitions for the ASCII grid system
 export interface AsciiCell {
-  char: string;           // The current displayed character
-  targetChar?: string;    // For transitions
-  state: number;          // State value (can be used differently by different renderers)
-  type: AsciiCellType;    // What kind of cell this is
-  intensity: number;      // Value between 0-1 for mapping to palettes
+  char: string;                 // The ASCII character to display
+  type: 'background' | 'ui' | 'interactive'; // Cell type for rendering rules
+  intensity: number;            // Value from 0-1 for color intensity
+  // Optional interactive properties
   interactive?: {
-    baseChar: string;     // Original character when not animated
-    isHovered: boolean;   // Whether this cell is currently hovered
-    linkTarget?: string;  // URL for links
-  }
+    baseChar: string;           // Original character
+    isHovered: boolean;         // Mouse hover state
+    linkTarget?: string;        // Optional URL for links
+  };
 }
 
 export type AsciiGrid = AsciiCell[][];
 
-export interface EngineOptions {
-  element: HTMLPreElement;
-  cols?: number;
-  rows?: number;
-  fps?: number;
-  theme?: 'dark' | 'light';
-  mouseEnabled?: boolean;
-}
-
-export interface AsciiEngine {
-  grid: AsciiGrid;
-  cols: number;
-  rows: number;
-  fps: number;
-  element: HTMLPreElement;
-  theme: 'dark' | 'light';
-  mouseX: number;
-  mouseY: number;
-  time: number;
-  start: () => void;
-  stop: () => void;
-  resize: (newCols?: number, newRows?: number) => void;
-  update: (deltaTime: number) => void;
-  render: () => void;
-}
-
-/**
- * Measures the size of a character in the monospace font
- */
-function measureCharSize(): { width: number; height: number } {
-  const testElement = document.createElement('pre');
-  testElement.style.visibility = 'hidden';
-  testElement.style.position = 'absolute';
-  testElement.style.top = '-9999px';
-  testElement.style.fontFamily = 'monospace';
-  testElement.textContent = 'X';
-  
-  document.body.appendChild(testElement);
-  const rect = testElement.getBoundingClientRect();
-  document.body.removeChild(testElement);
-  
-  return { 
-    width: rect.width, 
-    height: rect.height 
+// Configuration for the ASCII engine
+export interface AsciiEngineConfig {
+  cellWidth: number;            // Width of each character cell
+  cellHeight: number;           // Height of each character cell
+  backgroundColor: string;      // Background color
+  textColor: string;            // Text color
+  fontFamily: string;           // Font family for rendering
+  mousePosition?: {
+    x: number;                  // Mouse X position in pixels
+    y: number;                  // Mouse Y position in cells
   };
 }
 
 /**
- * Creates a new ASCII engine instance
+ * Initialize the ASCII engine with a grid and configuration
  */
-export function createEngine(options: EngineOptions): AsciiEngine {
-  const {
-    element,
-    cols = 0,
-    rows = 0,
-    fps = 30,
-    theme = 'dark',
-    mouseEnabled = true
-  } = options;
+export function initAsciiEngine(
+  container: HTMLElement,
+  canvas: HTMLCanvasElement,
+  config: Partial<AsciiEngineConfig> = {}
+): { grid: AsciiGrid; config: AsciiEngineConfig } {
+  // Calculate grid dimensions based on container size
+  const { width, height } = container.getBoundingClientRect();
+  const cellWidth = config.cellWidth || 8;
+  const cellHeight = config.cellHeight || 16;
+  const cols = Math.floor(width / cellWidth);
+  const rows = Math.floor(height / cellHeight);
   
-  // Calculate dimensions if not specified
-  const charSize = measureCharSize();
-  const calculatedCols = cols || Math.floor(element.offsetWidth / charSize.width);
-  const calculatedRows = rows || Math.floor(element.offsetHeight / charSize.height);
+  // Create initial configuration
+  const engineConfig: AsciiEngineConfig = {
+    cellWidth: cellWidth,
+    cellHeight: cellHeight,
+    backgroundColor: config.backgroundColor || '#000000',
+    textColor: config.textColor || '#50C878',
+    fontFamily: config.fontFamily || 'monospace'
+  };
   
-  // Initialize the grid
-  const grid: AsciiGrid = Array(calculatedRows).fill(0).map(() => 
-    Array(calculatedCols).fill(0).map(() => ({
-      char: ' ',
-      state: 0,
-      type: 'background',
-      intensity: 0
-    }))
-  );
+  // Initialize canvas
+  canvas.width = width;
+  canvas.height = height;
   
-  // Engine state
-  let isRunning = false;
-  let lastFrameTime = 0;
-  let frameId: number | null = null;
-  let mouseX = -1;
-  let mouseY = -1;
-  let currentTime = 0;
-  
-  // Update mouse position
-  function handleMouseMove(e: MouseEvent) {
-    if (!mouseEnabled) return;
-    
-    const rect = element.getBoundingClientRect();
-    const relativeX = e.clientX - rect.left;
-    const relativeY = e.clientY - rect.top;
-    
-    mouseX = Math.floor(relativeX / charSize.width);
-    mouseY = Math.floor(relativeY / charSize.height);
-    
-    // Keep within grid bounds
-    mouseX = Math.max(0, Math.min(mouseX, calculatedCols - 1));
-    mouseY = Math.max(0, Math.min(mouseY, calculatedRows - 1));
-  }
-  
-  // Handle resize
-  function handleResize() {
-    // Only recalculate if auto-sizing was enabled
-    if (cols === 0 || rows === 0) {
-      const newCols = Math.floor(element.offsetWidth / charSize.width);
-      const newRows = Math.floor(element.offsetHeight / charSize.height);
-      resize(newCols, newRows);
-    }
-  }
-  
-  // Animation frame handler
-  function animate(timestamp: number) {
-    const deltaTime = timestamp - lastFrameTime;
-    const frameInterval = 1000 / fps;
-    
-    // Only update if enough time has passed
-    if (deltaTime >= frameInterval) {
-      lastFrameTime = timestamp - (deltaTime % frameInterval);
-      currentTime = timestamp * 0.001; // convert to seconds
-      
-      // Update and render
-      update(deltaTime * 0.001);
-      render();
-    }
-    
-    // Request next frame
-    if (isRunning) {
-      frameId = requestAnimationFrame(animate);
-    }
-  }
-  
-  // Update the grid state
-  function update(deltaTime: number) {
-    // This will be filled by generator systems
-    // Left empty for now as generators will be implemented separately
-  }
-  
-  // Render grid to DOM
-  function render() {
-    // Character palettes for themes
-    const darkPalette = [' ', '.', ':', '+', '*', '#', '@'];
-    const lightPalette = ['@', '#', '*', '+', ':', '.', ' '];
-    const palette = theme === 'dark' ? darkPalette : lightPalette;
-    
-    // Generate the output string
-    let output = '';
-    for (let y = 0; y < grid.length; y++) {
-      for (let x = 0; x < grid[y].length; x++) {
-        const cell = grid[y][x];
-        
-        // Add the character (this will be enhanced with interactive features)
-        if (cell.type === 'background') {
-          // Map intensity to palette
-          const index = Math.min(
-            palette.length - 1, 
-            Math.floor(cell.intensity * palette.length)
-          );
-          output += palette[index];
-        } else {
-          // UI and interactive elements
-          output += cell.char;
-        }
-      }
-      output += '\n';
-    }
-    
-    // Single DOM update
-    element.textContent = output;
-  }
-  
-  // Set up and initialize the engine
-  function start() {
-    if (isRunning) return;
-    
-    isRunning = true;
-    lastFrameTime = performance.now();
-    
-    // Set up event listeners
-    if (mouseEnabled) {
-      element.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('resize', handleResize);
-    }
-    
-    // Start animation loop
-    frameId = requestAnimationFrame(animate);
-  }
-  
-  // Stop the engine
-  function stop() {
-    if (!isRunning) return;
-    
-    isRunning = false;
-    
-    // Clean up event listeners
-    if (mouseEnabled) {
-      element.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('resize', handleResize);
-    }
-    
-    // Cancel animation frame
-    if (frameId !== null) {
-      cancelAnimationFrame(frameId);
-      frameId = null;
-    }
-  }
-  
-  // Resize the grid
-  function resize(newCols?: number, newRows?: number) {
-    const targetCols = newCols || calculatedCols;
-    const targetRows = newRows || calculatedRows;
-    
-    // Create a new grid with the new dimensions
-    const newGrid: AsciiGrid = Array(targetRows).fill(0).map(() => 
-      Array(targetCols).fill(0).map(() => ({
+  // Initialize the grid with empty cells
+  const grid: AsciiGrid = [];
+  for (let y = 0; y < rows; y++) {
+    const row: AsciiCell[] = [];
+    for (let x = 0; x < cols; x++) {
+      row.push({
         char: ' ',
-        state: 0,
         type: 'background',
         intensity: 0
-      }))
-    );
-    
-    // Copy existing cells
-    for (let y = 0; y < Math.min(grid.length, targetRows); y++) {
-      for (let x = 0; x < Math.min(grid[y].length, targetCols); x++) {
-        newGrid[y][x] = grid[y][x];
-      }
+      });
     }
-    
-    // Update the grid reference
-    Object.assign(grid, newGrid);
+    grid.push(row);
   }
   
-  // Return the engine interface
-  return {
-    grid,
-    cols: calculatedCols,
-    rows: calculatedRows,
-    fps,
-    element,
-    theme,
-    mouseX,
-    mouseY,
-    time: currentTime,
-    start,
-    stop,
-    resize,
-    update,
-    render
+  return { grid, config: engineConfig };
+}
+
+/**
+ * Handle resize events
+ */
+export function handleResize(
+  container: HTMLElement,
+  canvas: HTMLCanvasElement,
+  grid: AsciiGrid,
+  config: AsciiEngineConfig
+): void {
+  // Get the new dimensions
+  const { width, height } = container.getBoundingClientRect();
+  const newCols = Math.floor(width / config.cellWidth);
+  const newRows = Math.floor(height / config.cellHeight);
+  
+  // Resize the canvas
+  canvas.width = width;
+  canvas.height = height;
+  
+  // Resize the grid, preserving existing data where possible
+  while (grid.length < newRows) {
+    // Add new rows
+    const newRow: AsciiCell[] = [];
+    for (let x = 0; x < newCols; x++) {
+      newRow.push({
+        char: ' ',
+        type: 'background',
+        intensity: 0
+      });
+    }
+    grid.push(newRow);
+  }
+  
+  // Truncate if grid is now smaller
+  if (grid.length > newRows) {
+    grid.length = newRows;
+  }
+  
+  // Adjust row widths
+  for (let y = 0; y < grid.length; y++) {
+    const row = grid[y];
+    
+    // Add new columns if needed
+    while (row.length < newCols) {
+      row.push({
+        char: ' ',
+        type: 'background',
+        intensity: 0
+      });
+    }
+    
+    // Truncate if row is now smaller
+    if (row.length > newCols) {
+      row.length = newCols;
+    }
+  }
+}
+
+/**
+ * Update mouse position for interactivity
+ */
+export function updateMousePosition(
+  x: number,
+  y: number,
+  grid: AsciiGrid,
+  config: AsciiEngineConfig
+): void {
+  // Convert pixel coordinates to grid coordinates
+  const gridX = Math.floor(x / config.cellWidth);
+  const gridY = Math.floor(y / config.cellHeight);
+  
+  config.mousePosition = {
+    x: gridX,
+    y: gridY
   };
+}
+
+/**
+ * Render the current state of the grid to canvas
+ */
+export function renderFrame(
+  canvas: HTMLCanvasElement,
+  grid: AsciiGrid,
+  config: AsciiEngineConfig
+): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  
+  // Clear canvas with background color
+  ctx.fillStyle = config.backgroundColor;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Set up text rendering
+  ctx.font = `${config.cellHeight - 2}px ${config.fontFamily}`;
+  ctx.textBaseline = 'top';
+  
+  // Render each cell
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < grid[y].length; x++) {
+      const cell = grid[y][x];
+      
+      // Skip empty spaces
+      if (cell.char === ' ' && cell.type === 'background') continue;
+      
+      // Determine color based on cell type and intensity
+      let color: string;
+      
+      switch (cell.type) {
+        case 'background':
+          // Use main color with variable intensity
+          color = adjustColorIntensity(config.textColor, cell.intensity);
+          break;
+          
+        case 'ui':
+          // UI elements use full intensity
+          color = config.textColor;
+          break;
+          
+        case 'interactive':
+          // Interactive elements can have hover effects
+          color = cell.interactive?.isHovered 
+            ? adjustColorIntensity(config.textColor, 1.5)
+            : adjustColorIntensity(config.textColor, cell.intensity || 1);
+          break;
+          
+        default:
+          color = config.textColor;
+      }
+      
+      // Set the color
+      ctx.fillStyle = color;
+      
+      // Draw the character
+      ctx.fillText(
+        cell.char,
+        x * config.cellWidth,
+        y * config.cellHeight
+      );
+    }
+  }
+}
+
+/**
+ * Helper to adjust color intensity
+ */
+function adjustColorIntensity(color: string, intensity: number): string {
+  // Parse the color
+  let r = 0, g = 0, b = 0;
+  
+  // Handle hex format (#RRGGBB)
+  const hexMatch = color.match(/#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i);
+  if (hexMatch) {
+    r = parseInt(hexMatch[1], 16);
+    g = parseInt(hexMatch[2], 16);
+    b = parseInt(hexMatch[3], 16);
+  } 
+  // Handle rgb format
+  else {
+    const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/i);
+    if (rgbMatch) {
+      r = parseInt(rgbMatch[1]);
+      g = parseInt(rgbMatch[2]);
+      b = parseInt(rgbMatch[3]);
+    }
+  }
+  
+  // Adjust intensity (capped at 255)
+  r = Math.min(255, Math.round(r * intensity));
+  g = Math.min(255, Math.round(g * intensity));
+  b = Math.min(255, Math.round(b * intensity));
+  
+  // Return the new color
+  return `rgb(${r}, ${g}, ${b})`;
 } 

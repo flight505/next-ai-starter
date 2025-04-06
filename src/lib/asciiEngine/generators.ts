@@ -1,191 +1,232 @@
 /**
  * ASCII Engine - Procedural Generation Systems
- * Collection of algorithms for generating dynamic ASCII patterns
+ * Functions for generating different patterns and effects on the ASCII grid
  */
 
 import { AsciiGrid } from './engine';
 
-/**
- * Simple 2D Perlin-like noise function
- * Generates values between 0-1
- */
-export function noise(x: number, y: number, time: number, scale = 0.05): number {
-  // This is a simple, naive noise implementation for demonstration
-  // A proper implementation would use Perlin or Simplex noise
-  const nx = x * scale;
-  const ny = y * scale;
-  const t = time * 0.2;
-  
-  return (
-    Math.sin(nx + t) * Math.cos(ny + t * 0.3) * 0.25 +
-    Math.sin((nx * 0.3 + ny * 0.7) * 2 + t * 0.7) * 0.25 +
-    Math.sin((nx * 0.9 - ny * 0.3) * 3 + t * 0.4) * 0.25 +
-    0.5
-  );
+// Noise Generator Options
+interface NoiseGeneratorOptions {
+  intensity?: number;   // Overall intensity of noise (0-1)
+  speed?: number;       // Speed of animation (0-1)
 }
 
 /**
- * Generates a flowing wave pattern across the grid
+ * Generate Perlin-like noise on the grid
  */
-export function generateWave(
-  grid: AsciiGrid, 
-  time: number, 
-  amplitude = 1.0, 
-  scale = 0.05
-): void {
-  const rows = grid.length;
-  const cols = grid[0].length;
-  
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      // Skip UI cells
-      if (grid[y][x].type !== 'background') continue;
-      
-      // Calculate noise value with wave-like characteristics
-      const value = noise(x, y, time, scale) * amplitude;
-      
-      // Store intensity for later character mapping
-      grid[y][x].intensity = value;
-    }
-  }
-}
-
-/**
- * Generates static noise (like TV static) across the grid
- */
-export function generateStatic(
-  grid: AsciiGrid, 
-  density = 0.5
-): void {
-  const rows = grid.length;
-  const cols = grid[0].length;
-  
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      // Skip UI cells
-      if (grid[y][x].type !== 'background') continue;
-      
-      // Generate random value
-      const value = Math.random() * density;
-      
-      // Store intensity for later character mapping
-      grid[y][x].intensity = value;
-    }
-  }
-}
-
-/**
- * Generates a Matrix-like rain effect
- */
-export function generateMatrixRain(
+export function noiseGenerator(
   grid: AsciiGrid,
-  time: number,
-  density = 0.3,
-  speed = 1.0
+  options: NoiseGeneratorOptions = {}
 ): void {
-  const rows = grid.length;
-  const cols = grid[0].length;
+  const intensity = options.intensity ?? 0.5;
+  const speed = options.speed ?? 1;
+  const time = Date.now() * 0.001 * speed;
   
-  // Reset intensities
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < grid[0].length; x++) {
+      // Skip non-background cells
       if (grid[y][x].type !== 'background') continue;
       
-      // Shift existing values down
-      if (y > 0 && grid[y-1][x].intensity > 0.3) {
-        grid[y][x].intensity = Math.max(0, grid[y-1][x].intensity - 0.1);
-      } else {
-        grid[y][x].intensity *= 0.95; // Fade out
+      // Generate noise value - using a simple algorithm here for performance
+      const noiseValue = 
+        Math.sin(x * 0.1 + time) * 
+        Math.cos(y * 0.1 + time) * 
+        Math.sin((x + y) * 0.1 + time);
+      
+      // Map to 0-1 range
+      const normalizedValue = (noiseValue + 1) * 0.5;
+      
+      // Apply intensity
+      grid[y][x].intensity = normalizedValue * intensity;
+    }
+  }
+}
+
+// Wave Generator Options
+interface WaveGeneratorOptions {
+  amplitude?: number;    // Height of waves (0-1)
+  frequency?: number;    // Frequency of waves
+  speed?: number;        // Speed of animation
+  verticalShift?: number; // Vertical offset
+}
+
+/**
+ * Generate wave patterns on the grid
+ */
+export function waveGenerator(
+  grid: AsciiGrid,
+  options: WaveGeneratorOptions = {}
+): void {
+  const amplitude = options.amplitude ?? 0.5;
+  const frequency = options.frequency ?? 0.1;
+  const speed = options.speed ?? 1;
+  const verticalShift = options.verticalShift ?? 0;
+  
+  const time = Date.now() * 0.001 * speed;
+  
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < grid[0].length; x++) {
+      // Skip non-background cells
+      if (grid[y][x].type !== 'background') continue;
+      
+      // Calculate wave value
+      const waveValue = 
+        Math.sin(x * frequency + time) * 
+        Math.cos((y + verticalShift) * frequency + time * 0.5) * 
+        amplitude;
+      
+      // Add to existing intensity (allowing blending with other generators)
+      grid[y][x].intensity = Math.min(1, (grid[y][x].intensity || 0) + Math.abs(waveValue));
+    }
+  }
+}
+
+// Static Generator Options
+interface StaticGeneratorOptions {
+  density?: number;      // Density of static (0-1)
+  intensity?: number;    // Intensity of static (0-1)
+}
+
+/**
+ * Generate static/noise pattern
+ */
+export function staticGenerator(
+  grid: AsciiGrid,
+  options: StaticGeneratorOptions = {}
+): void {
+  const density = options.density ?? 0.3;
+  const intensity = options.intensity ?? 0.5;
+  
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < grid[0].length; x++) {
+      // Skip non-background cells
+      if (grid[y][x].type !== 'background') continue;
+      
+      // Random static with density control
+      if (Math.random() < density) {
+        grid[y][x].intensity = Math.min(1, (grid[y][x].intensity || 0) + Math.random() * intensity);
+      }
+    }
+  }
+}
+
+// Rain Generator Options
+interface RainGeneratorOptions {
+  density?: number;      // Density of raindrops (0-1)
+  speed?: number;        // Speed of rain (0-1)
+}
+
+/**
+ * Generate rain effect
+ */
+export function rainGenerator(
+  grid: AsciiGrid,
+  options: RainGeneratorOptions = {}
+): void {
+  const density = options.density ?? 0.05;
+  const speed = options.speed ?? 1;
+  
+  // Randomly add raindrops to the top row
+  for (let x = 0; x < grid[0].length; x++) {
+    if (Math.random() < density) {
+      if (grid[0][x].type === 'background') {
+        grid[0][x].intensity = 1;
+        grid[0][x].char = '|';
       }
     }
   }
   
-  // Generate new drops at the top
-  for (let x = 0; x < cols; x++) {
-    if (grid[0][x].type !== 'background') continue;
-    
-    // Randomly start new drops
-    if (Math.random() < density * speed * 0.1) {
-      grid[0][x].intensity = 0.7 + Math.random() * 0.3;
-    }
-  }
-}
-
-/**
- * Generates a ripple effect from a point
- */
-export function generateRipple(
-  grid: AsciiGrid,
-  centerX: number,
-  centerY: number,
-  time: number,
-  radius = 15,
-  strength = 0.7
-): void {
-  const rows = grid.length;
-  const cols = grid[0].length;
-  
-  // Calculate ripple parameters
-  const rippleSpeed = 5;  // How fast the ripple moves
-  const rippleWidth = 3;  // Width of the ripple wave
-  
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      // Skip UI cells
-      if (grid[y][x].type !== 'background') continue;
-      
-      // Calculate distance from ripple center
-      const dx = x - centerX;
-      const dy = y - centerY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      // Only affect cells within the ripple radius
-      if (distance <= radius) {
-        // Calculate ripple effect
-        const rippleFactor = Math.sin((distance - time * rippleSpeed) * (Math.PI / rippleWidth));
-        const intensity = Math.max(0, Math.min(1, 
-          grid[y][x].intensity + (rippleFactor * strength * (1 - distance / radius))
-        ));
+  // Move existing raindrops down
+  for (let y = grid.length - 1; y > 0; y--) {
+    for (let x = 0; x < grid[0].length; x++) {
+      if (grid[y-1][x].char === '|' && grid[y][x].type === 'background') {
+        // Move drop down
+        grid[y][x].char = '|';
+        grid[y][x].intensity = grid[y-1][x].intensity * 0.95; // Fade out
         
-        grid[y][x].intensity = intensity;
+        // Clear previous position
+        grid[y-1][x].char = ' ';
+        grid[y-1][x].intensity = 0;
       }
     }
   }
 }
 
+// Ripple Generator Options
+interface RippleGeneratorOptions {
+  centerX?: number;      // Center X position
+  centerY?: number;      // Center Y position
+  radius?: number;       // Current radius
+  maxRadius?: number;    // Maximum radius
+  intensity?: number;    // Intensity of ripple (0-1)
+}
+
 /**
- * Applies cursor "heat" effect around the mouse position
+ * Generate expanding ripple effect
  */
-export function generateCursorHeat(
+export function rippleGenerator(
   grid: AsciiGrid,
-  mouseX: number, 
-  mouseY: number,
-  radius = 10,
-  intensity = 0.7
+  options: RippleGeneratorOptions = {}
 ): void {
-  // Skip if mouse is outside grid
-  if (mouseX < 0 || mouseY < 0 || mouseY >= grid.length || 
-      (grid[0] && mouseX >= grid[0].length)) {
-    return;
+  const centerX = options.centerX ?? Math.floor(grid[0].length / 2);
+  const centerY = options.centerY ?? Math.floor(grid.length / 2);
+  const radius = options.radius ?? 0;
+  const maxRadius = options.maxRadius ?? Math.max(grid.length, grid[0].length);
+  const intensity = options.intensity ?? 0.7;
+  
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < grid[0].length; x++) {
+      // Skip non-background cells
+      if (grid[y][x].type !== 'background') continue;
+      
+      // Calculate distance from center
+      const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+      
+      // Create ripple effect (ring)
+      const rippleWidth = 3; // Width of the ripple
+      if (Math.abs(distance - radius) < rippleWidth) {
+        // Calculate fade based on distance from exact radius
+        const fade = 1 - (Math.abs(distance - radius) / rippleWidth);
+        grid[y][x].intensity = Math.min(1, (grid[y][x].intensity || 0) + fade * intensity);
+      }
+    }
   }
+}
+
+// Cursor Heat Options
+interface CursorHeatOptions {
+  mouseX: number;        // Mouse X position
+  mouseY: number;        // Mouse Y position
+  radius?: number;       // Radius of effect
+  intensity?: number;    // Max intensity
+}
+
+/**
+ * Generate a heat effect around the cursor
+ */
+export function cursorHeatGenerator(
+  grid: AsciiGrid,
+  options: CursorHeatOptions
+): void {
+  const { mouseX, mouseY } = options;
+  const radius = options.radius ?? 10;
+  const intensity = options.intensity ?? 1;
   
-  const rows = grid.length;
-  const cols = grid[0].length;
+  // Ensure mouseX and mouseY are valid
+  if (mouseX < 0 || mouseY < 0) return;
   
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      // Skip UI cells
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < grid[0].length; x++) {
+      // Skip non-background cells
       if (grid[y][x].type !== 'background') continue;
       
       // Calculate distance from cursor
-      const dx = x - mouseX;
-      const dy = y - mouseY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
+      const distance = Math.sqrt(Math.pow(x - mouseX, 2) + Math.pow(y - mouseY, 2));
       
-      // Apply heat effect if within radius
-      if (distance <= radius) {
-        const heatFactor = intensity * (1 - distance / radius);
-        grid[y][x].intensity = Math.min(1, grid[y][x].intensity + heatFactor);
+      // Apply heat based on distance
+      if (distance < radius) {
+        const heatValue = intensity * (1 - distance / radius);
+        grid[y][x].intensity = Math.min(1, (grid[y][x].intensity || 0) + heatValue);
       }
     }
   }
