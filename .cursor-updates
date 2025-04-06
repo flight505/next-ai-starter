@@ -1,41 +1,5 @@
 # Cursor Updates
 
-- Ran production build verification - build completed successfully with no TypeScript or compilation errors
-- Performed build check on Next.js app with tRPC and Tailwind configuration
-- Successfully ran production build with Prisma generation and Next.js compilation
-- Fixed dynamic route warning by adding force-dynamic config to root page
-- Added Storybook with Button component and stories, updated .cursorrules with Storybook guidelines
-- Captured screenshot of Button component stories in Storybook
-- Completed Story A1: Created UI components for cloning starter repository, including ButtonCloneRepo atom, CloneRepoModal molecule, RepoSetupSection organism, and integrated them into the dashboard page.
-- Completed Story A2 - Configure Project Details, creating InputText and TextareaDescription atoms, ProjectDetailsForm molecule, and ProjectSetupSection organism, along with their Storybook stories.
-- Implemented Story A3 - Secure API Key Entry with InputApiKey component, ApiKeyForm molecule, and ApiKeySection organism, including Storybook stories for each component.
-- Completed Story A4: Created EnvVariableRow, EnvTable, and EnvConfigSection components with their Storybook stories for environment variable management.
-- Completed Story B1: Created UI components for BRD generation including ButtonGenerateBRD atom, BRDStatusIndicator molecule, and BRDGenerationSection organism with full Storybook documentation and interactive states.
-- Completed Story B2: Implemented the Generate PRD from BRD UI components including ButtonGeneratePRD atom, PRDStatusIndicator molecule, and PRDGenerationSection organism with all accompanying Storybook stories.
-- Created UI components for generating Tasks Markdown file (Story B3) including ButtonGenerateTasks, TasksStatusIndicator, and TasksGenerationSection with corresponding Storybook stories.
-- Completed Story B4: Developed DocumentWorkflowTimeline organism and DocumentWorkflowPage template to visualize the document generation workflow with dynamic status displays and responsive design.
-- Implemented Story C1 (Kanban Task Management) including TaskCard atom, KanbanColumn molecule, and KanbanBoard organism components with Storybook stories for each and a markdown parser utility.
-- Completed Story C2 - Added checkbox status toggle functionality to Kanban tasks, allowing users to cycle through todo, in-progress, and done states.
-- Implemented Story D1 components including ButtonMarkInProgress atom, InProgressPromptModal molecule, and TaskInProgressFlow organism with Storybook stories for all components.
-- Implemented Story D2 "Merge Worktree on Task Completion (UI)" by creating ButtonMarkDone atom, MergeConflictModal molecule, and TaskCompletionFlow organism components with their corresponding Storybook stories.
-- Completed Story D3 - Added Claude CLI UI components including ClaudeCLIOutput and CodeGenerationSection with Storybook stories
-- Verified Stories D2 and D3 are complete with all components and Storybook stories properly implemented, tested and documented.
-- Completed Story E1 by creating a dependency graph visualizer that displays task relationships using SVG with a circular layout and connecting arrows.
-- Completed Story E2 - Create Subsequent Tasks File (UI) by implementing ButtonAddTaskSet atom and MultipleTaskSetsPage organism with Storybook stories for task set management.
-- Completed Story E3 - Add Kanban Board to Page by creating KanbanBoardPage and implementing DashboardPage with an integrated Kanban board, linking to all workflow pages.
-- Completed Story E4: Error Handling & Retries UI with ToastNotifications, ErrorRetryPrompt, and OperationRetryFlow components
-- Updated all components with standardized earth-tone color palette, replaced specific color references, and created a comprehensive DesignSystem storybook for showcasing the design system.
-- Updated all molecule components to use earth-tone color scheme, including ClaudeCLIOutput, ErrorRetryPrompt, and the status indicator components (TasksStatusIndicator, PRDStatusIndicator, BRDStatusIndicator).
-- Updated all organism components to use earth-tone color scheme, including OperationRetryFlow, DocumentWorkflowTimeline, DependencyGraphSection, CodeGenerationSection, TaskCompletionFlow, TaskInProgressFlow, and the generation sections (BRDGenerationSection, PRDGenerationSection, TasksGenerationSection).
-- Improved Kanban board UI with consistent earth-tone colors, better spacing, enhanced visual hierarchy, and optimized task card presentation for improved readability and user experience.
-- Updated all dashboard pages with earth-tone color palette, including the main app page, dashboard page, document-workflow page, and multiple-task-sets page, for a consistent visual identity across the application.
-- Implemented Tasks 1-3 from the MVP Screen Layout Implementation checklist: created a fresh Home Screen with two cards for project creation/loading, added a New Project Setup screen with input fields and API key section, and added Document Generation Progress display with a workflow timeline.
-- Completed all tasks in the MVP Screen Layout Implementation checklist: implemented Project Dashboard layout, updated TaskCard with action buttons, created TaskViewModal, added Conflict Resolution UI, and built GenerateMoreTasksModal component.
-- Added Link component from Next.js to make the "Create New" button navigate to the new-project page.
-- Added project creation and document generation functionality with tRPC routers, file system integration, and AI-powered document generation using Claude API
-- Fixed bug in repository cloning: now correctly sanitizes project names to create valid directory names and shows the full destination path to users
-- Implemented dashboard page with project selection, forq.json parsing, task file listing, task parsing, and git worktree creation placeholder.
-- Refactored dashboard page to leverage existing KanbanBoard component and move logic to the backend with proper tRPC endpoints.
 - Fixed invalid hook call error in dashboard page by properly using React hooks pattern instead of imperative API calls.
 - Implemented Conway's Game of Life animation and created a Contact page featuring the Game of Life as an interactive background with a styled contact form.
 - Created AsciiOverlay component with navigation links, implemented hover-interactive styling, and integrated it with the layout structure to improve site navigation and user experience.
@@ -49,3 +13,4 @@
 - Fixed maximum update depth exceeded error in AsciiBackground by moving grid initialization to a separate useEffect hook to avoid state updates during resizing
 - Removed accidentally included webcam-to-ascii-art directory that was committed inadvertently
 - Added ESLint configuration with NextJS and recommended rules to improve code quality
+- Fixed ESLint errors by adding proper React imports and fixing import paths to support linting and successful builds
