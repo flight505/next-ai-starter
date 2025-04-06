@@ -9,7 +9,7 @@ import {
 } from "@/lib/asciiEngine/engine";
 import { 
   noiseGenerator, waveGenerator, rippleGenerator, 
-  cursorHeatGenerator 
+  cursorHeatGenerator, staticGenerator, rainGenerator
 } from "@/lib/asciiEngine/generators";
 import { 
   centerWord, startWordTransition, 
@@ -31,20 +31,30 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
   const configRef = useRef<AsciiEngineConfig | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimestampRef = useRef<number>(0);
-
+  const lastMouseX = useRef<number>(0);
+  const lastMouseY = useRef<number>(0);
+  const mouseVelocity = useRef<number>(0);
+  const velocitySmoothing = 0.8; // Smooth out velocity changes
+  
   // Legacy states for GOL mode
   const [golGrid, setGolGrid] = useState<GOLGrid | null>(null);
   
   // Engine states
   const [currentTransition, setCurrentTransition] = useState<WordTransition | null>(null);
-  // Enhanced word list with more interesting phrases
+  // Large graffiti-style phrases inspired by ertdfgcvb.xyz
   const defaultWords = [
-    "HELLO WORLD",
-    "ASCII ART",
-    "CREATIVE CODE",
     "TERMINAL AESTHETIC",
     "DIGITAL POETRY",
-    "TEXT BECOMES ART"
+    "TEXT BECOMES ART",
+    "ASCII GRAFFITI",
+    "CODE AS CANVAS",
+    "PROCEDURAL TEXT",
+    "DIGITAL CONCRETE",
+    "HELLO WORLD",
+    "TYPEWRITER DREAMS",
+    "GILGAMESH IS MY FATHER",
+    "TIME FOR A NEW HAIRCUT",
+    "I LOVE MY CAT"
   ];
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const frameCountRef = useRef(0);
@@ -122,6 +132,16 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
       
+      // Calculate mouse velocity
+      const deltaX = mouseX - lastMouseX.current;
+      const deltaY = mouseY - lastMouseY.current;
+      const instantVelocity = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      mouseVelocity.current = mouseVelocity.current * velocitySmoothing + 
+                              instantVelocity * (1 - velocitySmoothing); // Simple smoothing
+      
+      lastMouseX.current = mouseX;
+      lastMouseY.current = mouseY;
+      
       updateMousePosition(mouseX, mouseY, gridRef.current, configRef.current);
     };
     
@@ -165,6 +185,11 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
           if (cell.type === 'background') {
             cell.char = ' ';
             cell.intensity = 0;
+            
+            // Apply heat decay
+            if (cell.heat) {
+              cell.heat = cell.heat * 0.95;
+            }
           }
         }
       }
@@ -202,6 +227,44 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
           setCurrentTransition(transition);
         }
         
+        // Apply mouse velocity-based heat effect
+        const velocityThreshold = 5; // Pixels per frame to trigger color
+        const heatGain = 0.2; // How much heat velocity adds
+        const heatRadius = 15; // How far the heat spreads (in grid cells)
+        const redColor = '#ff0000'; // For heat-affected cells
+        
+        if (mouseVelocity.current > velocityThreshold && configRef.current.mousePosition) {
+          const mouseGridX = configRef.current.mousePosition.x;
+          const mouseGridY = configRef.current.mousePosition.y;
+          
+          for (let y = 0; y < gridRef.current.length; y++) {
+            for (let x = 0; x < gridRef.current[0].length; x++) {
+              const distX = x - mouseGridX;
+              const distY = y - mouseGridY;
+              const dist = Math.sqrt(distX * distX + distY * distY);
+              
+              if (dist < heatRadius) {
+                // Apply more heat closer to cursor and based on velocity
+                const heatToAdd = (mouseVelocity.current - velocityThreshold) * 
+                                 heatGain * Math.max(0, 1 - dist / heatRadius);
+                
+                // Initialize heat if not exist
+                if (!gridRef.current[y][x].heat) {
+                  gridRef.current[y][x].heat = 0;
+                }
+                
+                gridRef.current[y][x].heat = Math.min(1.0, gridRef.current[y][x].heat as number + heatToAdd);
+                
+                // Apply color based on heat
+                if (gridRef.current[y][x].heat && gridRef.current[y][x].heat > 0.3) {
+                  // Set to red for higher heat values
+                  gridRef.current[y][x].color = redColor;
+                }
+              }
+            }
+          }
+        }
+        
         // Update transition if active
         if (currentTransition) {
           const isComplete = updateWordTransition(
@@ -217,14 +280,14 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
         } else if (!userWord) {
           // If no transition active and not using userWord, display current word
           // Use a function to make words more prominent
-          placeMultilineWord(
+          placeASCIIGraffiti(
             gridRef.current, 
             activeWord, 
             centerY
           );
         } else {
           // If using userWord, always display it
-          placeMultilineWord(
+          placeASCIIGraffiti(
             gridRef.current, 
             userWord, 
             centerY
@@ -317,13 +380,12 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
       onClick={handleClick}
       style={{ 
         overflow: "hidden", 
-        zIndex: 1,
-        pointerEvents: "none"
+        zIndex: 1
       }}
     >
       <canvas
         ref={canvasRef}
-        className="absolute top-0 left-0 w-full h-full pointer-events-none"
+        className="absolute top-0 left-0 w-full h-full"
         aria-hidden="true"
       />
     </div>
@@ -339,6 +401,45 @@ function placeMultilineWord(grid: AsciiGrid, word: string, centerY: number) {
   
   // Create an enlarged version of the word using ASCII art technique
   const wordLines: string[] = createLargeText(word);
+  
+  // Calculate positioning to center the word
+  const lineLength = wordLines[0]?.length || 0;
+  const x = Math.floor((cols - lineLength) / 2);
+  
+  // Place each line of the enlarged word
+  for (let i = 0; i < wordLines.length; i++) {
+    const y = centerY + i - Math.floor(wordLines.length / 2);
+    
+    // Skip if out of bounds
+    if (y < 0 || y >= grid.length) continue;
+    
+    // Place this line of the word
+    for (let j = 0; j < wordLines[i].length; j++) {
+      const posX = x + j;
+      
+      // Skip if out of bounds
+      if (posX < 0 || posX >= cols) continue;
+      
+      // Only place non-space characters
+      const char = wordLines[i][j];
+      if (char !== ' ') {
+        grid[y][posX].char = char;
+        grid[y][posX].type = 'background';
+        grid[y][posX].intensity = 1.0; // Full intensity for visibility
+      }
+    }
+  }
+}
+
+// Create a much larger ASCII graffiti-style word
+function placeASCIIGraffiti(grid: AsciiGrid, word: string, centerY: number) {
+  // Only proceed if grid exists
+  if (!grid || grid.length === 0) return;
+  
+  const cols = grid[0].length;
+  
+  // Create a much larger ASCII art representation
+  const wordLines: string[] = createGraffitiText(word);
   
   // Calculate positioning to center the word
   const lineLength = wordLines[0]?.length || 0;
@@ -390,6 +491,230 @@ function createLargeText(word: string): string[] {
       result[0] += char + ' ';
       result[1] += char + ' ';
       result[2] += char + ' ';
+    }
+  }
+  
+  return result;
+}
+
+// Function to create graffiti-style text (much larger)
+function createGraffitiText(word: string): string[] {
+  // ASCII art style with 5 lines height
+  const result: string[] = ['', '', '', '', ''];
+  
+  // Convert to uppercase for consistency
+  word = word.toUpperCase();
+  
+  // Character maps for graffiti-style letters (simplified)
+  const charMap: {[key: string]: string[]} = {
+    'A': [
+      '  █  ',
+      ' ███ ',
+      '█   █',
+      '█████',
+      '█   █'
+    ],
+    'B': [
+      '████ ',
+      '█   █',
+      '████ ',
+      '█   █',
+      '████ '
+    ],
+    'C': [
+      ' ████',
+      '█    ',
+      '█    ',
+      '█    ',
+      ' ████'
+    ],
+    'D': [
+      '████ ',
+      '█   █',
+      '█   █',
+      '█   █',
+      '████ '
+    ],
+    'E': [
+      '█████',
+      '█    ',
+      '████ ',
+      '█    ',
+      '█████'
+    ],
+    'F': [
+      '█████',
+      '█    ',
+      '████ ',
+      '█    ',
+      '█    '
+    ],
+    'G': [
+      ' ████',
+      '█    ',
+      '█  ██',
+      '█   █',
+      ' ████'
+    ],
+    'H': [
+      '█   █',
+      '█   █',
+      '█████',
+      '█   █',
+      '█   █'
+    ],
+    'I': [
+      '█████',
+      '  █  ',
+      '  █  ',
+      '  █  ',
+      '█████'
+    ],
+    'J': [
+      '    █',
+      '    █',
+      '    █',
+      '█   █',
+      ' ███ '
+    ],
+    'K': [
+      '█   █',
+      '█  █ ',
+      '███  ',
+      '█  █ ',
+      '█   █'
+    ],
+    'L': [
+      '█    ',
+      '█    ',
+      '█    ',
+      '█    ',
+      '█████'
+    ],
+    'M': [
+      '█   █',
+      '██ ██',
+      '█ █ █',
+      '█   █',
+      '█   █'
+    ],
+    'N': [
+      '█   █',
+      '██  █',
+      '█ █ █',
+      '█  ██',
+      '█   █'
+    ],
+    'O': [
+      ' ███ ',
+      '█   █',
+      '█   █',
+      '█   █',
+      ' ███ '
+    ],
+    'P': [
+      '████ ',
+      '█   █',
+      '████ ',
+      '█    ',
+      '█    '
+    ],
+    'Q': [
+      ' ███ ',
+      '█   █',
+      '█   █',
+      '█  ██',
+      ' ████'
+    ],
+    'R': [
+      '████ ',
+      '█   █',
+      '████ ',
+      '█  █ ',
+      '█   █'
+    ],
+    'S': [
+      ' ████',
+      '█    ',
+      ' ███ ',
+      '    █',
+      '████ '
+    ],
+    'T': [
+      '█████',
+      '  █  ',
+      '  █  ',
+      '  █  ',
+      '  █  '
+    ],
+    'U': [
+      '█   █',
+      '█   █',
+      '█   █',
+      '█   █',
+      ' ███ '
+    ],
+    'V': [
+      '█   █',
+      '█   █',
+      '█   █',
+      ' █ █ ',
+      '  █  '
+    ],
+    'W': [
+      '█   █',
+      '█   █',
+      '█ █ █',
+      '██ ██',
+      '█   █'
+    ],
+    'X': [
+      '█   █',
+      ' █ █ ',
+      '  █  ',
+      ' █ █ ',
+      '█   █'
+    ],
+    'Y': [
+      '█   █',
+      ' █ █ ',
+      '  █  ',
+      '  █  ',
+      '  █  '
+    ],
+    'Z': [
+      '█████',
+      '   █ ',
+      '  █  ',
+      ' █   ',
+      '█████'
+    ],
+    ' ': [
+      '     ',
+      '     ',
+      '     ',
+      '     ',
+      '     '
+    ]
+  };
+  
+  // Add default for characters not in our map
+  const defaultChar = [
+    '█████',
+    '█████',
+    '█████',
+    '█████',
+    '█████'
+  ];
+  
+  // Combine characters to form the word
+  for (let i = 0; i < word.length; i++) {
+    const char = word[i];
+    const charTemplate = charMap[char] || defaultChar;
+    
+    // Add each line of the character to the result
+    for (let line = 0; line < 5; line++) {
+      result[line] += charTemplate[line] + ' ';
     }
   }
   
