@@ -21,6 +21,7 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
   const [golGrid, setGolGrid] = useState<GOLGrid | null>(null);
   const [currentSandLetterIndex, setCurrentSandLetterIndex] = useState(0);
   const [charDimensions, setCharDimensions] = useState({ width: 9, height: 16 });
+  const dimensionsInitialized = useRef(false);
 
   // Handle click for sand game
   const handleClick = (e: React.MouseEvent) => {
@@ -63,7 +64,12 @@ const AsciiBackground = ({ userWord, mode = "default" }: AsciiBackgroundProps) =
       const charWidth = 9; // pixels, monospace font
       const charHeight = 16; // pixels, monospace font
       
-      setCharDimensions({ width: charWidth, height: charHeight });
+      // Only update dimensions on first load or if they've actually changed
+      if (!dimensionsInitialized.current || 
+         (charDimensions.width !== charWidth || charDimensions.height !== charHeight)) {
+        setCharDimensions({ width: charWidth, height: charHeight });
+        dimensionsInitialized.current = true;
+      }
       
       cols = Math.floor(preRef.current.offsetWidth / charWidth);
       rows = Math.floor(preRef.current.offsetHeight / charHeight);
